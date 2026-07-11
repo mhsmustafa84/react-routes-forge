@@ -1,6 +1,6 @@
 {
   "name": "react-routes-forge",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Type-safe route definitions with automatic path builders for React apps",
   "type": "module",
   "author": {
@@ -48,7 +48,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "bun run test && bun run build"
+    "prepublishOnly": "bun run test && bun run build",
+    "release": "standard-version"
   },
   "peerDependencies": {
     "react": ">=17",
@@ -62,6 +63,7 @@
   "devDependencies": {
     "@types/node": "^26.1.1",
     "react-router-dom": "^6.0.0",
+    "standard-version": "^9.5.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0",
     "vitest": "^1.0.0"
