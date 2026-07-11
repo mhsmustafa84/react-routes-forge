@@ -1,14 +1,15 @@
-﻿import type { RouteParam } from './types';
+import type { RouteParam } from '../types';
 
-const PATH_PARAM_PATTERN = /:([^/]+)/g;
-const ESCAPE_REGEX = /[.*+?^${}()|[\\]\\]/g;
+/** Returns a fresh RegExp each call — avoids shared `lastIndex` state on /g patterns. */
+const PATH_PARAM_RE = () => /:([^/]+)/g;
+const ESCAPE_RE = () => /[.*+?^${}()|[\]\\]/g;
 
 function escapeRegex(value: string): string {
-  return value.replace(ESCAPE_REGEX, '\\$&');
+  return value.replace(ESCAPE_RE(), '\\$&');
 }
 
 function createTemplatePattern(template: string): string {
-  return escapeRegex(template).replace(PATH_PARAM_PATTERN, '([^/]+)');
+  return escapeRegex(template).replace(PATH_PARAM_RE(), '([^/]+)');
 }
 
 export function buildPath(
@@ -40,11 +41,11 @@ export function buildPath(
 }
 
 export function extractParamNames(template: string): string[] {
-  return [...template.matchAll(PATH_PARAM_PATTERN)].map((match) => match[1]);
+  return [...template.matchAll(PATH_PARAM_RE())].map((match) => match[1] as string);
 }
 
 export function isDynamic(path: string): boolean {
-  return PATH_PARAM_PATTERN.test(path);
+  return PATH_PARAM_RE().test(path);
 }
 
 export function isActivePath(
@@ -79,7 +80,7 @@ export function joinPaths(...segments: string[]): string {
   return (
     '/' +
     segments
-      .map((segment) => segment.replace(/^\\/+|\\/+$/g, ''))
+      .map((segment) => segment.replace(/^\/+|\/+$/g, ''))
       .filter(Boolean)
       .join('/')
   );

@@ -1,0 +1,11 @@
+# Source & config (dist/ is published via package.json `files`)
+src/
+tsconfig.json
+bun.lock
+
+# Dev tooling
+node_modules/
+.npmignore
+
+# Misc
+*.log

@@ -4,7 +4,7 @@
  */
 
 import { useParams, useNavigate, generatePath } from 'react-router-dom';
-import type { RouteParam } from './types';
+import type { RouteParam } from '../types';
 
 // ─── useRouteParams ──────────────────────────────────────────────────────────
 

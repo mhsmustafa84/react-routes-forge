@@ -16,28 +16,22 @@ Type-safe route definitions with automatic path builders for React apps.
 npm install react-routes-forge
 ```
 
-React Router is optional. Install only if you want the hooks:
-
-```bash
-npm install react-router-dom
-```
-
 ## Quick start
 
 ```ts
-import { defineRoutes } from 'react-routes-forge';
+import { defineRoutes } from "react-routes-forge";
 
 export const PATHS = defineRoutes({
-  HOME: '/',
-  LOGIN: '/login',
+  HOME: "/",
+  LOGIN: "/login",
   USERS: {
-    ROOT: '/users',
-    ADD: '/users/add',
-    EDIT: '/users/edit/:id',
-    DETAILS: '/users/:id',
+    ROOT: "/users",
+    ADD: "/users/add",
+    EDIT: "/users/edit/:id",
+    DETAILS: "/users/:id",
   },
   ROLES: {
-    PERMISSIONS: '/roles/permissions/:name',
+    PERMISSIONS: "/roles/permissions/:name",
   },
 } as const);
 ```
@@ -62,7 +56,7 @@ Build resolved paths from dynamic templates.
 
 ```ts
 navigate(PATHS.USERS.EDIT.build({ id: 42 }));
-navigate(PATHS.ROLES.PERMISSIONS.build({ name: 'admin' }));
+navigate(PATHS.ROLES.PERMISSIONS.build({ name: "admin" }));
 navigate(PATHS.HOME);
 ```
 
@@ -71,9 +65,9 @@ navigate(PATHS.HOME);
 Dynamic routes remain usable as strings while gaining helper methods.
 
 ```ts
-PATHS.USERS.EDIT            // '/users/edit/:id'
-PATHS.USERS.EDIT.build({ id: 42 }) // '/users/edit/42'
-PATHS.USERS.EDIT.paramNames       // ['id']
+PATHS.USERS.EDIT; // '/users/edit/:id'
+PATHS.USERS.EDIT.build({ id: 42 }); // '/users/edit/42'
+PATHS.USERS.EDIT.paramNames; // ['id']
 ```
 
 ## API
@@ -90,9 +84,9 @@ Create a typed route object from a nested route definition.
 Resolve a route template without using `defineRoutes`.
 
 ```ts
-import { build } from 'react-routes-forge';
+import { build } from "react-routes-forge";
 
-build('/users/:id/posts/:postId', { id: 1, postId: 42 });
+build("/users/:id/posts/:postId", { id: 1, postId: 42 });
 // '/users/1/posts/42'
 ```
 
@@ -101,11 +95,11 @@ build('/users/:id/posts/:postId', { id: 1, postId: 42 });
 Check whether a path matches a template.
 
 ```ts
-import { isActivePath } from 'react-routes-forge';
+import { isActivePath } from "react-routes-forge";
 
-isActivePath('/users/42', '/users/:id');
-isActivePath('/users/42/posts', '/users/:id');
-isActivePath('/users/42/posts', '/users/:id', { exact: false });
+isActivePath("/users/42", "/users/:id");
+isActivePath("/users/42/posts", "/users/:id");
+isActivePath("/users/42/posts", "/users/:id", { exact: false });
 ```
 
 ### `extractParamsFromPath(template, resolvedPath)`
@@ -113,9 +107,9 @@ isActivePath('/users/42/posts', '/users/:id', { exact: false });
 Extract path params from a resolved route.
 
 ```ts
-import { extractParamsFromPath } from 'react-routes-forge';
+import { extractParamsFromPath } from "react-routes-forge";
 
-extractParamsFromPath('/users/:id', '/users/42');
+extractParamsFromPath("/users/:id", "/users/42");
 // { id: '42' }
 ```
 
@@ -124,9 +118,9 @@ extractParamsFromPath('/users/:id', '/users/42');
 Join path fragments and normalise slashes.
 
 ```ts
-import { joinPaths } from 'react-routes-forge';
+import { joinPaths } from "react-routes-forge";
 
-joinPaths('/api/', '/v1/', '/users');
+joinPaths("/api/", "/v1/", "/users");
 // '/api/v1/users'
 ```
 
@@ -135,9 +129,9 @@ joinPaths('/api/', '/v1/', '/users');
 Return all parameter names from a template.
 
 ```ts
-import { getParamNames } from 'react-routes-forge';
+import { getParamNames } from "react-routes-forge";
 
-getParamNames('/users/:id/posts/:postId');
+getParamNames("/users/:id/posts/:postId");
 // ['id', 'postId']
 ```
 
@@ -150,10 +144,10 @@ Import only when using React Router.
 Typed wrapper around React Router's `useParams`.
 
 ```tsx
-import { useRouteParams } from 'react-routes-forge';
+import { useRouteParams } from "react-routes-forge";
 
 function EditUser() {
-  const { id } = useRouteParams<'/users/edit/:id'>();
+  const { id } = useRouteParams<"/users/edit/:id">();
   return <div>{id}</div>;
 }
 ```
@@ -163,7 +157,7 @@ function EditUser() {
 Thin, typed wrapper around React Router's `useNavigate()`.
 
 ```tsx
-import { useNavigateTo } from 'react-routes-forge';
+import { useNavigateTo } from "react-routes-forge";
 
 function Component() {
   const navigateTo = useNavigateTo();

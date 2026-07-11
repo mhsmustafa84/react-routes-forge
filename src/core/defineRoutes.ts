@@ -1,5 +1,8 @@
-﻿import { buildPath, extractParamNames, isDynamic } from './utils';
-import type { ExtractParams, PathParams, RoutePath } from './types';
+import { buildPath, extractParamNames, isDynamic } from './utils';
+import type { ExtractParams, PathParams, RoutePath } from '../types';
+
+// Re-export so consumers that import from 'core/defineRoutes' get the full surface
+export { buildPath, extractParamNames, isDynamic } from './utils';
 
 type RouteInput = {
   [key: string]: string | RouteInput;
@@ -25,12 +28,15 @@ const isRouteGroup = (value: unknown): value is RouteInput =>
 
 function wrapDynamicPath<T extends string>(template: T): DynamicRoute<T> {
   const paramNames = extractParamNames(template);
-  const wrapped = new String(template) as DynamicRoute<T>;
+  const wrapped = new String(template) as unknown as DynamicRoute<T> & {
+    build: (params: PathParams<T>) => RoutePath;
+    paramNames: Array<ExtractParams<T>>;
+  };
 
-  wrapped.build = (params: PathParams<T>) => buildPath(template, params);
-  wrapped.paramNames = paramNames;
+  wrapped.build = (params: PathParams<T>) => buildPath(template, params) as RoutePath;
+  wrapped.paramNames = paramNames as Array<ExtractParams<T>>;
 
-  return wrapped;
+  return wrapped as unknown as DynamicRoute<T>;
 }
 
 function processRouteMap<T extends RouteInput>(routes: T): ResolvedRoutes<T> {
@@ -46,7 +52,7 @@ function processRouteMap<T extends RouteInput>(routes: T): ResolvedRoutes<T> {
         ? wrapDynamicPath(value)
         : value) as ResolvedRoutes<T>[typeof key];
     } else if (isRouteGroup(value)) {
-      result[key] = processRouteMap(value as RouteInput);
+      result[key] = processRouteMap(value as RouteInput) as unknown as ResolvedRoutes<T>[typeof key];
     }
   }
 

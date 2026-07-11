@@ -1,4 +1,4 @@
-import { defineRoutes } from './defineRoutes';
+import { defineRoutes } from '../core/defineRoutes';
 
 /**
  * Application route definitions.

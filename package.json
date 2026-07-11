@@ -1,33 +1,55 @@
 {
   "name": "react-routes-forge",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Type-safe route definitions with automatic path builders for React apps",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+  "type": "module",
+  "author": {
+    "name": "Mostafa Abdelhamid",
+    "email": "mhsmustafa84@gmail.com"
   },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "tsc --noEmit"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mhsmustafa84/react-routes-forge.git"
   },
+  "homepage": "https://github.com/mhsmustafa84/react-routes-forge#readme",
+  "bugs": "https://github.com/mhsmustafa84/react-routes-forge/issues",
   "keywords": [
     "react",
     "router",
     "routes",
     "typescript",
-    "type-safe"
+    "type-safe",
+    "react-router",
+    "path-builder"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "bun run test && bun run build"
+  },
   "peerDependencies": {
     "react": ">=17",
     "react-router-dom": ">=6"

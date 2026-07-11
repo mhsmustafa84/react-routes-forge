@@ -4,14 +4,14 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { defineRoutes, buildPath, extractParamNames, isDynamic } from './defineRoutes';
+import { defineRoutes, buildPath, extractParamNames, isDynamic } from '../core/defineRoutes';
 import {
   isActivePath,
   extractParamsFromPath,
   joinPaths,
   build,
   getParamNames,
-} from './utils';
+} from '../core/utils';
 
 // ─── defineRoutes ────────────────────────────────────────────────────────────
 
