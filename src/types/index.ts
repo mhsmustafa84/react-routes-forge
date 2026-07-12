@@ -7,7 +7,7 @@ export type RoutePath = `/${string}`;
  * A route builder function that accepts params and returns a resolved path.
  */
 export type RouteBuilder<TParams extends RouteParams = RouteParams> = (
-  params: TParams
+  params: TParams,
 ) => RoutePath;
 
 /**
@@ -36,13 +36,22 @@ export type ExtractParams<T extends string> =
   T extends `${string}:${infer Param}/${infer Rest}`
     ? Param | ExtractParams<`/${Rest}`>
     : T extends `${string}:${infer Param}`
-    ? Param
-    : never;
+      ? Param
+      : never;
 
 /**
  * Builds a params object type from a path template.
  * e.g. '/users/:id' → { id: RouteParam }
  */
-export type PathParams<T extends string> = ExtractParams<T> extends never
-  ? never
-  : { [K in ExtractParams<T>]: RouteParam };
+export type PathParams<T extends string> =
+  ExtractParams<T> extends never
+    ? never
+    : { [K in ExtractParams<T>]: RouteParam };
+
+/**
+ * Acceptable query param value types for route builders.
+ */
+export type QueryParams = Record<
+  string,
+  RouteParam | RouteParam[] | null | undefined
+>;

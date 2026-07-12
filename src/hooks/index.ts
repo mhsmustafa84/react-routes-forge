@@ -3,8 +3,8 @@
  * These are thin wrappers — import only if you're using React Router.
  */
 
-import { useParams, useNavigate, generatePath } from 'react-router-dom';
-import type { RouteParam } from '../types';
+import { useParams, useNavigate, generatePath } from "react-router-dom";
+import type { QueryParams, RouteParam, RouteParams } from "../types";
 
 // ─── useRouteParams ──────────────────────────────────────────────────────────
 
@@ -26,8 +26,8 @@ export function useRouteParams<
   K extends string = T extends `${string}:${infer P}/${infer R}`
     ? P | (R extends `${string}:${infer Q}` ? Q : never)
     : T extends `${string}:${infer P}`
-    ? P
-    : never,
+      ? P
+      : never,
 >(): Record<K, string> {
   return useParams() as Record<K, string>;
 }
@@ -73,10 +73,34 @@ export function useNavigateTo() {
  */
 export function useResolvedPath(
   template: string,
-  params: Record<string, RouteParam>
+  params: RouteParams,
+  query?: QueryParams,
 ): string {
-  return generatePath(
+  const path = generatePath(
     template,
-    Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)]))
+    Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
   );
+
+  if (query) {
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach((v) => {
+            if (v !== undefined && v !== null) {
+              searchParams.append(key, String(v));
+            }
+          });
+        } else {
+          searchParams.append(key, String(value));
+        }
+      }
+    }
+    const queryString = searchParams.toString();
+    if (queryString) {
+      return path + (path.includes("?") ? "&" : "?") + queryString;
+    }
+  }
+
+  return path;
 }
