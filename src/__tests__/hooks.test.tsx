@@ -1,0 +1,231 @@
+// @vitest-environment jsdom
+/**
+ * Tests for React hooks (useRouteParams, useNavigateTo, useResolvedPath).
+ * Requires jsdom + @testing-library/react.
+ */
+
+import { describe, it, expect, vi } from "vitest";
+import React, { type ReactNode } from "react";
+import { renderHook, act } from "@testing-library/react";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { useRouteParams, useNavigateTo, useResolvedPath } from "../hooks";
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Wraps a hook in a MemoryRouter with an optional initial URL. */
+function routerWrapper(initialEntries: string[] = ["/"], routePath = "*") {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <MemoryRouter initialEntries={initialEntries}>
+        <Routes>
+          <Route path={routePath} element={<>{children}</>} />
+        </Routes>
+      </MemoryRouter>
+    );
+  };
+}
+
+// ─── useRouteParams ──────────────────────────────────────────────────────────
+
+describe("useRouteParams", () => {
+  it("returns params extracted from the current URL", () => {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <MemoryRouter initialEntries={["/users/42"]}>
+        <Routes>
+          <Route path="/users/:id" element={<>{children}</>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const { result } = renderHook(
+      () => useRouteParams<"/users/:id">(),
+      { wrapper },
+    );
+
+    expect(result.current.id).toBe("42");
+  });
+
+  it("returns multiple params correctly", () => {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <MemoryRouter initialEntries={["/posts/7/comments/99"]}>
+        <Routes>
+          <Route
+            path="/posts/:postId/comments/:commentId"
+            element={<>{children}</>}
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const { result } = renderHook(
+      () => useRouteParams<"/posts/:postId/comments/:commentId">(),
+      { wrapper },
+    );
+
+    expect(result.current.postId).toBe("7");
+    expect(result.current.commentId).toBe("99");
+  });
+
+  it("returns an empty object when there are no params", () => {
+    const { result } = renderHook(
+      () => useRouteParams<"/users">(),
+      { wrapper: routerWrapper(["/users"], "/users") },
+    );
+
+    expect(result.current).toEqual({});
+  });
+});
+
+// ─── useNavigateTo ───────────────────────────────────────────────────────────
+
+describe("useNavigateTo", () => {
+  it("returns a callable function", () => {
+    const { result } = renderHook(useNavigateTo, {
+      wrapper: routerWrapper(),
+    });
+
+    expect(typeof result.current).toBe("function");
+  });
+
+  it("navigates to the given path", () => {
+    // We can't easily inspect window.location in jsdom with MemoryRouter,
+    // so we verify by checking that calling navigateTo does not throw.
+    const { result } = renderHook(useNavigateTo, {
+      wrapper: routerWrapper(["/start"]),
+    });
+
+    expect(() => {
+      act(() => {
+        result.current("/users/42");
+      });
+    }).not.toThrow();
+  });
+
+  it("accepts replace option without throwing", () => {
+    const { result } = renderHook(useNavigateTo, {
+      wrapper: routerWrapper(["/start"]),
+    });
+
+    expect(() => {
+      act(() => {
+        result.current("/home", { replace: true });
+      });
+    }).not.toThrow();
+  });
+
+  it("accepts state option without throwing", () => {
+    const { result } = renderHook(useNavigateTo, {
+      wrapper: routerWrapper(["/start"]),
+    });
+
+    expect(() => {
+      act(() => {
+        result.current("/home", { state: { from: "test" } });
+      });
+    }).not.toThrow();
+  });
+});
+
+// ─── useResolvedPath ─────────────────────────────────────────────────────────
+
+describe("useResolvedPath", () => {
+  it("resolves a dynamic path with params", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/users/:id", { id: 42 }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/users/42");
+  });
+
+  it("resolves a multi-param path", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/posts/:postId/comments/:commentId", { postId: 3, commentId: 17 }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/posts/3/comments/17");
+  });
+
+  it("appends a query string when provided", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/users/:id", { id: 5 }, { tab: "info", active: "true" }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/users/5?tab=info&active=true");
+  });
+
+  it("coerces number params to strings", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/items/:id", { id: 99 }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/items/99");
+  });
+
+  // ── Missing-param behaviour ──
+
+  it("warns (not throws) when a param is missing in default mode", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { result } = renderHook(
+      () => useResolvedPath("/users/:id", {}),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Unresolved params"),
+    );
+    // Partial path is returned with the placeholder still present.
+    expect(result.current).toContain(":id");
+    warn.mockRestore();
+  });
+
+  it("throws a RangeError when strict:true and a param is missing", () => {
+    // renderHook catches errors — we need to suppress the console.error React
+    // prints for uncaught render errors, then check what was thrown.
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    expect(() => {
+      renderHook(
+        () => useResolvedPath("/users/:id", {}, undefined, { strict: true }),
+        { wrapper: routerWrapper() },
+      );
+    }).toThrowError(RangeError);
+
+    consoleError.mockRestore();
+  });
+
+  it("strict mode error message includes the missing param name", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    expect(() => {
+      renderHook(
+        () => useResolvedPath("/users/:id", {}, undefined, { strict: true }),
+        { wrapper: routerWrapper() },
+      );
+    }).toThrowError(/":id"/);
+
+    consoleError.mockRestore();
+  });
+
+  it("does not throw in strict mode when all params are supplied", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/users/:id", { id: 1 }, undefined, { strict: true }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/users/1");
+  });
+
+  it("handles parameter values containing colons without throwing", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/search/:query", { query: "a:b" }, undefined, { strict: true }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/search/a:b");
+  });
+});

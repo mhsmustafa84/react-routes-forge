@@ -1,4 +1,4 @@
-import type { QueryParams, RouteParam, RouteParams } from "../types";
+import type { QueryParams, RouteParam, RouteParams, BuildPathOptions, FlatRoute } from "../types";
 
 /** Returns a fresh RegExp each call — avoids shared `lastIndex` state on /g patterns. */
 const PATH_PARAM_RE = () => /:([^/]+)/g;
@@ -37,34 +37,43 @@ export function buildPath(
   template: string,
   params: RouteParams,
   query?: QueryParams,
+  options?: BuildPathOptions,
 ): string {
   const paramNames = extractParamNames(template);
+  const unresolved = paramNames.filter(
+    (name) => params[name] === undefined || params[name] === null,
+  );
 
   const resolved = paramNames.reduce((path, name) => {
     const value = params[name];
-    const replacement = value === undefined ? `:${name}` : String(value);
+    const replacement = value === undefined || value === null ? `:${name}` : String(value);
     return path.replace(
       new RegExp(`:${escapeRegex(name)}(?=/|$)`, "g"),
       replacement,
     );
   }, template);
 
-  const runtimeProcess = (
-    globalThis as typeof globalThis & {
-      process?: {
-        env?: Record<string, string | undefined>;
-      };
+  if (unresolved.length > 0) {
+    if (options?.strict) {
+      throw new RangeError(
+        `[route-forge] Missing required param(s) ${unresolved.map((p) => `":${p}"`).join(", ")} in template "${template}".`,
+      );
     }
-  ).process;
 
-  if (
-    runtimeProcess?.env?.NODE_ENV !== "production" &&
-    resolved.includes(":")
-  ) {
-    console.warn(
-      `[route-forge] Unresolved params in path "${resolved}". ` +
-        `Check that all :param segments have matching keys.`,
-    );
+    const runtimeProcess = (
+      globalThis as typeof globalThis & {
+        process?: {
+          env?: Record<string, string | undefined>;
+        };
+      }
+    ).process;
+
+    if (runtimeProcess?.env?.NODE_ENV !== "production") {
+      console.warn(
+        `[route-forge] Unresolved params in path "${resolved}". ` +
+          `Check that all :param segments have matching keys.`,
+      );
+    }
   }
 
   return appendQuery(resolved, query);
@@ -124,10 +133,56 @@ export function build(
   template: string,
   params: RouteParams,
   query?: QueryParams,
+  options?: BuildPathOptions,
 ): string {
-  return buildPath(template, params, query);
+  return buildPath(template, params, query, options);
 }
 
 export function getParamNames(template: string): string[] {
   return extractParamNames(template);
 }
+
+/**
+ * Walk a `defineRoutes` output tree and return a flat array of
+ * `{ key, path }` entries where `key` is the dot-joined key path from
+ * the root (e.g. `"SERVICES.BCC.EDIT"`) and `path` is the raw template
+ * string (e.g. `"/services/bcc/edit/:id"`).
+ *
+ * Useful for:
+ * - Generating sitemaps from a single source of truth.
+ * - Detecting duplicate path strings across branches at startup:
+ *
+ * @example
+ * const flat = flattenRoutes(PATHS);
+ * const paths = flat.map((r) => r.path);
+ * const dupes = paths.filter((p, i) => paths.indexOf(p) !== i);
+ * if (dupes.length) console.warn('Duplicate paths:', dupes);
+ */
+export function flattenRoutes(
+  routes: Record<string, unknown>,
+  prefix = "",
+): FlatRoute[] {
+  const entries: FlatRoute[] = [];
+
+  for (const key of Object.keys(routes)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    const value = routes[key];
+
+    if (typeof value === "string") {
+      // Plain static string leaf.
+      entries.push({ key: fullKey, path: value });
+    } else if (value instanceof String) {
+      // String-object leaf (wrapped dynamic path from defineRoutes).
+      entries.push({ key: fullKey, path: value.valueOf() });
+    } else if (typeof value === "object" && value !== null) {
+      // Nested route group — recurse.
+      entries.push(
+        ...flattenRoutes(value as Record<string, unknown>, fullKey),
+      );
+    }
+    // Anything else (functions, numbers, …) is silently skipped.
+  }
+
+  return entries;
+}
+

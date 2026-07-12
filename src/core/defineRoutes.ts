@@ -1,5 +1,6 @@
 import { buildPath, extractParamNames, isDynamic } from "./utils";
 import type {
+  BuildPathOptions,
   ExtractParams,
   PathParams,
   QueryParams,
@@ -15,7 +16,7 @@ type RouteInput = {
 
 type DynamicRoute<T extends string> = T extends `${string}:${string}`
   ? T & {
-      build(params: PathParams<T>, query?: QueryParams): RoutePath;
+      build(params: PathParams<T>, query?: QueryParams, options?: BuildPathOptions): RoutePath;
       paramNames: Array<ExtractParams<T>>;
     }
   : T;
@@ -34,12 +35,12 @@ const isRouteGroup = (value: unknown): value is RouteInput =>
 function wrapDynamicPath<T extends string>(template: T): DynamicRoute<T> {
   const paramNames = extractParamNames(template);
   const wrapped = new String(template) as unknown as DynamicRoute<T> & {
-    build: (params: PathParams<T>, query?: QueryParams) => RoutePath;
+    build: (params: PathParams<T>, query?: QueryParams, options?: BuildPathOptions) => RoutePath;
     paramNames: Array<ExtractParams<T>>;
   };
 
-  wrapped.build = (params: PathParams<T>, query?: QueryParams) =>
-    buildPath(template, params, query) as RoutePath;
+  wrapped.build = (params: PathParams<T>, query?: QueryParams, options?: BuildPathOptions) =>
+    buildPath(template, params, query, options) as RoutePath;
   wrapped.paramNames = paramNames as Array<ExtractParams<T>>;
 
   return wrapped as unknown as DynamicRoute<T>;

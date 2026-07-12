@@ -13,6 +13,8 @@ export type {
   RouteMap,
   ExtractParams,
   PathParams,
+  BuildPathOptions,
+  FlatRoute,
 } from "./types";
 
 // Utilities
@@ -22,6 +24,7 @@ export {
   joinPaths,
   build,
   getParamNames,
+  flattenRoutes,
 } from "./core/utils";
 
 // React hooks (tree-shakeable — only bundled if imported)

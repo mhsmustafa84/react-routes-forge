@@ -4,8 +4,13 @@
  */
 
 import { useParams, useNavigate, generatePath } from "react-router-dom";
-import type { ExtractParams, QueryParams, RouteParams } from "../types";
-import { appendQuery } from "../core/utils";
+import type {
+  ExtractParams,
+  QueryParams,
+  RouteParams,
+  BuildPathOptions,
+} from "../types";
+import { appendQuery, extractParamNames, buildPath } from "../core/utils";
 
 // ─── useRouteParams ──────────────────────────────────────────────────────────
 
@@ -57,18 +62,37 @@ export function useNavigateTo() {
  * Resolves a dynamic path template against params using React Router's
  * `generatePath`, with proper typing.
  *
- * Useful when you need the resolved path string without navigating.
+ * Accepts the same `options` bag as `build()` / `buildPath()`:
+ * - (default) soft-fail: `console.warn` and return the partial path with unresolved `:param` placeholders.
+ * - `{ strict: true }`: throw a `RangeError` on missing params — matching `.build()`'s strict behaviour.
+ *
+ * When all params are present, resolution is delegated to React Router's `generatePath`,
+ * which correctly handles splat (`*`) and optional (`:param?`) segments.
  *
  * @example
  * ```tsx
  * const path = useResolvedPath('/users/:id', { id: 42 }); // → '/users/42'
+ * const path = useResolvedPath('/users/:id', {}, undefined, { strict: true }); // throws RangeError
  * ```
  */
 export function useResolvedPath(
   template: string,
   params: RouteParams,
   query?: QueryParams,
+  options?: BuildPathOptions,
 ): string {
+  const paramNames = extractParamNames(template);
+  const hasAllParams = paramNames.every(
+    (name) => params[name] !== undefined && params[name] !== null,
+  );
+
+  if (!hasAllParams) {
+    // Let buildPath own all missing-param behaviour (warn/throw) —
+    // avoids re-implementing (and duplicating) the same check here.
+    return buildPath(template, params, query, options);
+  }
+
+  // All params present — use generatePath for correct splat / optional-segment handling.
   const path = generatePath(
     template,
     Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),

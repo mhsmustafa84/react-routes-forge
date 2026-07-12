@@ -1,14 +1,81 @@
 # react-routes-forge
 
-Type-safe route definitions with automatic path builders for React apps.
+**Type-safe route definitions with automatic path builders for React apps.**
+
+One source of truth for your routes — templates for `<Route path={...} />` and typed builders for navigation — with no duplication and no manual string concatenation.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](#)
+
+---
+
+## Table of contents
+
+- [Why react-routes-forge?](#why-react-routes-forge)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Core concepts](#core-concepts)
+- [API reference](#api-reference)
+  - [`defineRoutes(routeMap)`](#defineroutesroutemap)
+  - [`build(template, params, query?, options?)`](#buildtemplate-params-query-options)
+  - [`isActivePath(currentPath, template, options?)`](#isactivepathcurrentpath-template-options)
+  - [`extractParamsFromPath(template, resolvedPath)`](#extractparamsfrompathtemplate-resolvedpath)
+  - [`joinPaths(...segments)`](#joinpathssegments)
+  - [`getParamNames(template)`](#getparamnamestemplate)
+  - [`flattenRoutes(routes)`](#flattenroutesroutes)
+- [React hooks](#react-hooks)
+  - [`useRouteParams<T>()`](#useroutparamst)
+  - [`useNavigateTo()`](#usenavigateto)
+  - [`useResolvedPath(template, params, query?, options?)`](#useresolvedpathtemplate-params-query-options)
+- [Query string support](#query-string-support)
+- [Strict mode](#strict-mode)
+- [Migrating from the dual-key pattern](#migrating-from-the-dual-key-pattern)
+- [Known behaviours & gotchas](#known-behaviours--gotchas)
+- [TypeScript support](#typescript-support)
+- [Requirements](#requirements)
+- [License](#license)
+
+---
 
 ## Why react-routes-forge?
 
-`react-routes-forge` eliminates the duplicate template/builder pattern used in route definitions. One source of truth defines:
+Most React apps end up with route definitions like this:
 
-- static path templates for routing
-- dynamic path builders for navigation
-- typed params for safer runtime usage
+```ts
+// ❌ The common pattern — two keys per dynamic route, easy to desync
+export const PATHS = {
+  USERS: {
+    DETAILS: '/users/:id',
+    details: (id: string | number) => `/users/${id}`,
+  },
+};
+```
+
+Every dynamic route needs **two** entries: a template string for the router, and a hand-written function to build the real URL. They drift apart as the app grows, and nothing stops the template and the builder from disagreeing.
+
+`react-routes-forge` collapses both into a single key:
+
+```ts
+// ✅ One key, two uses
+export const PATHS = defineRoutes({
+  USERS: {
+    DETAILS: '/users/:id',
+  },
+} as const);
+
+PATHS.USERS.DETAILS;                 // '/users/:id'        → use in <Route path={...} />
+PATHS.USERS.DETAILS.build({ id: 42 }); // '/users/42'        → use when navigating
+```
+
+You get:
+
+- **Single source of truth** — no duplicate template/builder pairs to keep in sync
+- **Compile-time param safety** — `.build()` is typed from the path string itself; missing or misspelled params are TypeScript errors
+- **Query string support** — built into `.build()`, no manual `URLSearchParams` wrangling
+- **Zero runtime dependencies** for the core API — React Router is an optional peer dependency, only required if you use the hooks
+- **Deep nesting supported out of the box** — organize routes into as many nested groups as your app needs
+
+---
 
 ## Installation
 
@@ -16,155 +83,442 @@ Type-safe route definitions with automatic path builders for React apps.
 npm install react-routes-forge
 ```
 
+React Router is an **optional** peer dependency — only needed if you use the bundled hooks (`useRouteParams`, `useNavigateTo`, `useResolvedPath`).
+
+```bash
+npm install react-router-dom   # only if you're using the hooks
+```
+
+> **Note:** this package ships ESM-only. See [Known behaviours & gotchas](#known-behaviours--gotchas) for details.
+
+---
+
 ## Quick start
 
 ```ts
-import { defineRoutes } from "react-routes-forge";
+// paths.ts
+import { defineRoutes } from 'react-routes-forge';
 
 export const PATHS = defineRoutes({
-  HOME: "/",
-  LOGIN: "/login",
+  HOME: '/',
+  LOGIN: '/login',
   USERS: {
-    ROOT: "/users",
-    ADD: "/users/add",
-    EDIT: "/users/edit/:id",
-    DETAILS: "/users/:id",
+    ROOT: '/users',
+    ADD: '/users/add',
+    EDIT: '/users/edit/:id',
+    DETAILS: '/users/:id',
   },
   ROLES: {
-    PERMISSIONS: "/roles/permissions/:name",
+    PERMISSIONS: '/roles/permissions/:name',
   },
 } as const);
 ```
 
-## Usage
-
-### Router definitions
-
-Use route templates directly in route declarations.
-
 ```tsx
+// App.tsx — static paths and dynamic templates both work directly as strings
+import { Routes, Route } from 'react-router-dom';
 import { PATHS } from './paths';
 
-<Route path={PATHS.HOME} />
-<Route path={PATHS.USERS.EDIT} />
-<Route path={PATHS.ROLES.PERMISSIONS} />
+<Routes>
+  <Route path={PATHS.HOME} element={<Home />} />
+  <Route path={PATHS.USERS.ROOT} element={<UserList />} />
+  <Route path={PATHS.USERS.EDIT} element={<EditUser />} />
+  <Route path={PATHS.ROLES.PERMISSIONS} element={<RolePermissions />} />
+</Routes>
 ```
-
-### Navigation
-
-Build resolved paths from dynamic templates.
 
 ```ts
-navigate(PATHS.USERS.EDIT.build({ id: 42 }));
-navigate(PATHS.ROLES.PERMISSIONS.build({ name: "admin" }));
-navigate(PATHS.HOME);
+// Navigating — call .build() to resolve a dynamic path into a real URL
+navigate(PATHS.USERS.EDIT.build({ id: 42 }));               // '/users/edit/42'
+navigate(PATHS.ROLES.PERMISSIONS.build({ name: 'admin' })); // '/roles/permissions/admin'
+navigate(PATHS.HOME);                                        // '/'
 ```
 
-### Dynamic routes keep plain-string behavior
+That's the entire API surface you need for most apps. Everything below covers the rest of the toolkit.
 
-Dynamic routes remain usable as strings while gaining helper methods.
+---
 
-```ts
-PATHS.USERS.EDIT; // '/users/edit/:id'
-PATHS.USERS.EDIT.build({ id: 42 }); // '/users/edit/42'
-PATHS.USERS.EDIT.paramNames; // ['id']
-```
+## Core concepts
 
-## API
+| Route type | Example | Behaves as | Gains |
+|---|---|---|---|
+| **Static** | `HOME: '/'` | Plain string primitive | Nothing extra — use it directly |
+| **Dynamic** | `DETAILS: '/users/:id'` | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames` |
+
+`defineRoutes()` walks your route object recursively, leaving static paths untouched and wrapping any path containing a `:param` segment so it can carry a builder alongside its template string.
+
+---
+
+## API reference
 
 ### `defineRoutes(routeMap)`
 
-Create a typed route object from a nested route definition.
+Creates a fully typed route object from a nested plain object.
 
-- static routes remain plain strings
-- dynamic routes gain `.build(params)` and `.paramNames`
+- Static paths are returned as-is — use them directly anywhere a string is expected (e.g. `<Route path={...} />`).
+- Dynamic paths (containing `:param`) gain:
+  - **`.build(params, query?, options?)`** — resolves the template into a concrete URL
+  - **`.paramNames`** — array of the param names extracted from the template, e.g. `['id']`
 
-### `build(template, params)`
-
-Resolve a route template without using `defineRoutes`.
+Nesting is unlimited — organize routes into as many groups and sub-groups as your app needs.
 
 ```ts
-import { build } from "react-routes-forge";
+const PATHS = defineRoutes({
+  SERVICES: {
+    ROOT: '/services',
+    BENEFICIARY_CARE_CENTER: {
+      DETAILS: '/services/beneficiary-care-center/:id',
+      EDIT: '/services/beneficiary-care-center/edit/:id',
+    },
+  },
+} as const);
 
-build("/users/:id/posts/:postId", { id: 1, postId: 42 });
-// '/users/1/posts/42'
+PATHS.SERVICES.ROOT;                                             // '/services'
+PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.build({ id: 7 });    // '/services/beneficiary-care-center/edit/7'
+PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.paramNames;          // ['id']
 ```
+
+> Always pass `as const` to `defineRoutes()` — it preserves the literal string types that power `.build()`'s compile-time param checking.
+
+---
+
+### `build(template, params, query?, options?)`
+
+Standalone path resolver — for building a URL without going through `defineRoutes`, or for adding a query string to a **static** path (which has no `.build()` of its own).
+
+```ts
+import { build } from 'react-routes-forge';
+
+build('/users/:id/posts/:postId', { id: 1, postId: 42 });
+// → '/users/1/posts/42'
+
+// Append a query string to any path — including static ones
+build('/users', {}, { sort: 'asc' });
+// → '/users?sort=asc'
+
+// Strict mode — throw instead of warn when a param is missing
+build('/users/:id', {}, undefined, { strict: true });
+// ✗ throws RangeError: [route-forge] Missing required param(s) ":id" in template "/users/:id".
+```
+
+---
 
 ### `isActivePath(currentPath, template, options?)`
 
-Check whether a path matches a template.
+Checks whether a resolved path matches a route template — the building block for nav-highlighting ("is this link active?"). Query strings on `currentPath` are ignored automatically.
 
 ```ts
-import { isActivePath } from "react-routes-forge";
+import { isActivePath } from 'react-routes-forge';
 
-isActivePath("/users/42", "/users/:id");
-isActivePath("/users/42/posts", "/users/:id");
-isActivePath("/users/42/posts", "/users/:id", { exact: false });
+isActivePath('/users/42', '/users/:id');                          // true
+isActivePath('/users/42/posts', '/users/:id');                    // false (exact match by default)
+isActivePath('/users/42/posts', '/users/:id', { exact: false });  // true  (prefix match)
+isActivePath('/users/42?tab=profile', '/users/:id');               // true  (query string ignored)
 ```
+
+---
 
 ### `extractParamsFromPath(template, resolvedPath)`
 
-Extract path params from a resolved route.
+Extracts param values back out of a resolved URL, given its template. Also strips query strings before matching.
 
 ```ts
-import { extractParamsFromPath } from "react-routes-forge";
+import { extractParamsFromPath } from 'react-routes-forge';
 
-extractParamsFromPath("/users/:id", "/users/42");
-// { id: '42' }
+extractParamsFromPath('/users/:id', '/users/42');
+// → { id: '42' }
+
+extractParamsFromPath('/a/:x/b/:y', '/a/foo/b/bar');
+// → { x: 'foo', y: 'bar' }
 ```
+
+---
 
 ### `joinPaths(...segments)`
 
-Join path fragments and normalise slashes.
+Safely joins path segments, normalizing duplicate/missing slashes.
 
 ```ts
-import { joinPaths } from "react-routes-forge";
+import { joinPaths } from 'react-routes-forge';
 
-joinPaths("/api/", "/v1/", "/users");
-// '/api/v1/users'
+joinPaths('/users', 'edit', ':id');     // → '/users/edit/:id'
+joinPaths('/api/', '/v1/', '/users');   // → '/api/v1/users'
 ```
+
+---
 
 ### `getParamNames(template)`
 
-Return all parameter names from a template.
+Returns the list of param names present in a template string.
 
 ```ts
-import { getParamNames } from "react-routes-forge";
+import { getParamNames } from 'react-routes-forge';
 
-getParamNames("/users/:id/posts/:postId");
-// ['id', 'postId']
+getParamNames('/users/:id/posts/:postId'); // → ['id', 'postId']
+getParamNames('/users');                   // → []
 ```
+
+---
+
+### `flattenRoutes(routes)`
+
+Walks a `defineRoutes()` tree and returns a flat array of `{ key, path }` entries, where `key` is the dot-joined path from the root (e.g. `"SERVICES.BENEFICIARY_CARE_CENTER.EDIT"`) and `path` is the raw template string.
+
+Primary uses:
+
+- **Sitemap generation** — one call gives you every route in the app.
+- **Duplicate detection** — catch the same path string defined under two different keys before it ships.
+
+```ts
+import { defineRoutes, flattenRoutes } from 'react-routes-forge';
+
+const PATHS = defineRoutes({
+  HOME: '/',
+  USERS: {
+    ROOT: '/users',
+    EDIT: '/users/edit/:id',
+  },
+} as const);
+
+flattenRoutes(PATHS);
+// [
+//   { key: 'HOME',       path: '/' },
+//   { key: 'USERS.ROOT', path: '/users' },
+//   { key: 'USERS.EDIT', path: '/users/edit/:id' },
+// ]
+
+// Detect duplicate paths across the tree
+const flat = flattenRoutes(PATHS);
+const paths = flat.map((r) => r.path);
+const dupes = paths.filter((p, i) => paths.indexOf(p) !== i);
+if (dupes.length) console.warn('Duplicate route paths:', dupes);
+```
+
+---
 
 ## React hooks
 
-Import only when using React Router.
+Import these only if you're using React Router — they're tree-shakeable and won't be bundled unless imported.
 
 ### `useRouteParams<T>()`
 
-Typed wrapper around React Router's `useParams`.
+Typed wrapper around React Router's `useParams`. Pass the route's template string as a generic to get a correctly typed params object back — no casting, and it works for any number of `:param` segments.
 
 ```tsx
-import { useRouteParams } from "react-routes-forge";
+import { useRouteParams } from 'react-routes-forge';
 
+// Route: '/users/edit/:id'
 function EditUser() {
-  const { id } = useRouteParams<"/users/edit/:id">();
-  return <div>{id}</div>;
+  const { id } = useRouteParams<'/users/edit/:id'>();
+  return <div>Editing user {id}</div>;
+}
+
+// Multiple params also work correctly
+// Route: '/posts/:postId/comments/:commentId'
+function Comment() {
+  const { postId, commentId } = useRouteParams<'/posts/:postId/comments/:commentId'>();
+  // ...
 }
 ```
 
+---
+
 ### `useNavigateTo()`
 
-Thin, typed wrapper around React Router's `useNavigate()`.
+Thin, typed wrapper around `useNavigate()` that accepts a resolved path (the output of `.build()`) along with the usual navigation options.
 
 ```tsx
-import { useNavigateTo } from "react-routes-forge";
+import { useNavigateTo } from 'react-routes-forge';
+import { PATHS } from './paths';
 
 function Component() {
   const navigateTo = useNavigateTo();
+
   return (
     <button onClick={() => navigateTo(PATHS.USERS.EDIT.build({ id: 42 }))}>
       Edit
     </button>
   );
 }
+
+navigateTo(PATHS.HOME, { replace: true });
+navigateTo(PATHS.USERS.ROOT, { state: { from: 'settings' } });
 ```
+
+---
+
+### `useResolvedPath(template, params, query?, options?)`
+
+Resolves a path template to a concrete URL string without navigating — useful for `<Link to={...} />`, preloading, or building a URL for something other than `navigate()`. Backed by React Router's `generatePath`, so it correctly supports splat (`*`) and optional (`:param?`) segments. Accepts the same `query` and `options` as [`build()`](#buildtemplate-params-query-options).
+
+```tsx
+import { useResolvedPath } from 'react-routes-forge';
+
+const path = useResolvedPath('/users/:id', { id: 42 });
+// → '/users/42'
+
+const path = useResolvedPath('/users/:id', { id: 42 }, { tab: 'info' });
+// → '/users/42?tab=info'
+
+// Strict mode — throws RangeError instead of warning on missing params
+const path = useResolvedPath('/users/:id', {}, undefined, { strict: true });
+```
+
+---
+
+## Query string support
+
+Every path-resolving function — `.build()`, `build()`, and `useResolvedPath()` — accepts an optional query object as its second-to-last argument.
+
+```ts
+navigate(PATHS.USERS.DETAILS.build({ id: 42 }, { tab: 'billing', sort: 'asc' }));
+// → '/users/42?tab=billing&sort=asc'
+```
+
+**Array values** are serialized as repeated keys:
+
+```ts
+build('/search', {}, { tags: ['admin', 'moderator'] });
+// → '/search?tags=admin&tags=moderator'
+```
+
+**`null` and `undefined` values are dropped**, so you can pass optional filters without conditionally building the object:
+
+```ts
+build('/users', {}, { sort: 'asc', filter: undefined });
+// → '/users?sort=asc'
+```
+
+Static routes don't have a fluent `.build()` (there's nothing to interpolate), so use the standalone `build()` util to attach a query string to them:
+
+```ts
+import { build } from 'react-routes-forge';
+
+build(PATHS.USERS.ROOT, {}, { sort: 'asc', page: 2 });
+// → '/users?sort=asc&page=2'
+```
+
+---
+
+## Strict mode
+
+By default, a missing required param leaves the `:param` placeholder in the resolved string and logs a `console.warn` — useful for catching bugs during development without crashing the app.
+
+Pass `{ strict: true }` as the last argument to any builder to throw a `RangeError` instead:
+
+```ts
+build('/users/:id', {}, undefined, { strict: true });
+// ✗ throws RangeError: [route-forge] Missing required param(s) ":id" in template "/users/:id".
+```
+
+This is consistent across the whole API surface:
+
+| API | Default (no `strict`) | `{ strict: true }` |
+|---|---|---|
+| `.build()` (fluent, on dynamic routes) | `console.warn`, leaves `:param` in the string | throws `RangeError` |
+| `build()` / `buildPath()` (standalone) | `console.warn`, leaves `:param` in the string | throws `RangeError` |
+| `useResolvedPath()` | `console.warn`, leaves `:param` in the string | throws `RangeError` |
+
+A common pattern is enabling strict mode only in tests or development builds:
+
+```ts
+const opts = { strict: process.env.NODE_ENV === 'test' };
+navigate(PATHS.USERS.EDIT.build({ id: userId }, undefined, opts));
+```
+
+---
+
+## Migrating from the dual-key pattern
+
+If your routes currently look like this:
+
+```ts
+// ❌ Before
+export const PATHS = {
+  SERVICES: {
+    DETAILS: '/services/:id',
+    details: (id: string | number) => `/services/${id}`,
+  },
+};
+```
+
+Drop the lowercase builder function entirely and wrap the object in `defineRoutes()`:
+
+```ts
+// ✅ After
+export const PATHS = defineRoutes({
+  SERVICES: {
+    DETAILS: '/services/:id',
+  },
+} as const);
+```
+
+Update call sites from `details(id)` to `.build({ id })`:
+
+```ts
+// Before
+navigate(PATHS.SERVICES.details(42));
+
+// After
+navigate(PATHS.SERVICES.DETAILS.build({ id: 42 }));
+```
+
+Everywhere the template string itself was used (e.g. `<Route path={PATHS.SERVICES.DETAILS} />`) needs no changes at all.
+
+---
+
+## Known behaviours & gotchas
+
+### Dynamic routes are `String` objects, not primitives
+
+`defineRoutes` wraps dynamic paths in [`String` objects](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/String) so that `.build()` and `.paramNames` can be attached as properties. This means:
+
+```ts
+// ✓ These all work as expected
+String(PATHS.USERS.EDIT)               // '/users/edit/:id'
+`${PATHS.USERS.EDIT}`                  // '/users/edit/:id'
+PATHS.USERS.EDIT == '/users/edit/:id'  // true  (loose equality)
+
+// ✗ Watch out for these
+typeof PATHS.USERS.EDIT                 // 'object' ← not 'string'
+PATHS.USERS.EDIT === '/users/edit/:id'  // false    ← strict equality fails
+```
+
+Prefer template literals or explicit `String()` coercion when comparing dynamic route values, and avoid using them as plain object/`Map` keys. Static routes (`HOME`, `USERS.ROOT`, …) remain genuine string primitives and are unaffected.
+
+### `useResolvedPath` vs. the library's own `buildPath`
+
+`useResolvedPath` delegates to React Router's `generatePath` when all params are present, which correctly handles splat (`*`) and optional (`:param?`) segments that the library's own regex-based substitution does not. If params are missing, it falls back to the same `buildPath`/strict-mode behaviour described above — so failure modes stay consistent, but full splat/optional support is only guaranteed via the hook, not via `.build()`.
+
+### ESM-only package
+
+This package ships **ESM only** (`"type": "module"`, no `require` export condition). Consumers on a plain CommonJS setup (`require('react-routes-forge')`) are not supported. All modern bundlers (Vite, Webpack ≥ 5, esbuild, Rollup) handle ESM packages transparently. If you're in a CJS-only environment, you'll need a bundler transform or a compatibility shim.
+
+---
+
+## TypeScript support
+
+Written in strict TypeScript with no `any` in the public API surface. Param types for `.build()` are inferred directly from each path template via a recursive template-literal type, so:
+
+```ts
+PATHS.USERS.EDIT.build({ id: 42 });        // ✓ compiles
+PATHS.USERS.EDIT.build({});                // ✗ compile error — 'id' is required
+PATHS.USERS.EDIT.build({ userId: 42 });    // ✗ compile error — 'id' expected, not 'userId'
+```
+
+`.paramNames` is similarly typed as a literal array of the exact param names in the template, not a generic `string[]`.
+
+---
+
+## Requirements
+
+- **React** ≥ 17 (peer dependency)
+- **react-router-dom** ≥ 6 (optional peer dependency — required only for the bundled hooks)
+- **Node.js** ≥ 18
+- **TypeScript** ≥ 5 recommended for full type inference (the package works with plain JavaScript too, just without compile-time param checking)
+
+---
+
+## License
+
+MIT

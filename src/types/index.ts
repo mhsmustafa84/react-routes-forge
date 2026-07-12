@@ -55,3 +55,30 @@ export type QueryParams = Record<
   string,
   RouteParam | RouteParam[] | null | undefined
 >;
+
+/**
+ * Options accepted by `buildPath` (4th positional argument).
+ *
+ * @example
+ * // Throws a RangeError when a :param segment is missing rather than
+ * // silently leaving the colon-placeholder in the output string.
+ * buildPath('/users/:id', {}, undefined, { strict: true });
+ */
+export type BuildPathOptions = {
+  /**
+   * When `true`, `buildPath` throws a `RangeError` if any `:param`
+   * placeholder is left unresolved instead of emitting a console.warn.
+   * Useful in dev/test environments to catch missing params early.
+   */
+  strict?: boolean;
+};
+
+/**
+ * A single entry produced by `flattenRoutes()`.
+ */
+export type FlatRoute = {
+  /** Dot-joined key path from the root, e.g. `"SERVICES.BCC.EDIT"`. */
+  key: string;
+  /** The raw path template string, e.g. `"/services/bcc/edit/:id"`. */
+  path: string;
+};

@@ -1,9 +1,4 @@
-/**
- * Tests for route-forge
- * Run with: npx vitest (or jest)
- */
-
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   defineRoutes,
   buildPath,
@@ -16,6 +11,7 @@ import {
   joinPaths,
   build,
   getParamNames,
+  flattenRoutes,
 } from "../core/utils";
 
 // ─── defineRoutes ────────────────────────────────────────────────────────────
@@ -96,7 +92,20 @@ describe("defineRoutes", () => {
       "/services/bcc/edit/7",
     );
   });
+
+  it("fluent .build() accepts { strict: true } and throws on missing params", () => {
+    expect(() =>
+      (PATHS.USERS.EDIT as any).build({}, undefined, { strict: true }),
+    ).toThrowError(RangeError);
+  });
+
+  it("fluent .build() resolves correctly in strict mode when all params supplied", () => {
+    expect(
+      (PATHS.USERS.EDIT as any).build({ id: 5 }, undefined, { strict: true }),
+    ).toBe("/users/edit/5");
+  });
 });
+
 
 // ─── buildPath ───────────────────────────────────────────────────────────────
 
@@ -276,3 +285,137 @@ describe("search query support", () => {
     expect(PATHS.USERS.build({ id: 100 }, { filter: "active" })).toBe("/users/100?filter=active");
   });
 });
+
+// ─── flattenRoutes ────────────────────────────────────────────────────────────
+
+describe("flattenRoutes", () => {
+  const PATHS = defineRoutes({
+    HOME: "/",
+    LOGIN: "/login",
+    USERS: {
+      ROOT: "/users",
+      EDIT: "/users/edit/:id",
+    },
+    SERVICES: {
+      BCC: {
+        EDIT: "/services/bcc/edit/:id",
+      },
+    },
+  } as const);
+
+  it("returns a flat array with one entry per leaf", () => {
+    const flat = flattenRoutes(PATHS);
+    expect(flat).toHaveLength(5);
+  });
+
+  it("uses dot-joined keys for nested groups", () => {
+    const flat = flattenRoutes(PATHS);
+    const keys = flat.map((r) => r.key);
+    expect(keys).toContain("USERS.ROOT");
+    expect(keys).toContain("USERS.EDIT");
+    expect(keys).toContain("SERVICES.BCC.EDIT");
+  });
+
+  it("includes top-level leaves with no prefix", () => {
+    const flat = flattenRoutes(PATHS);
+    const keys = flat.map((r) => r.key);
+    expect(keys).toContain("HOME");
+    expect(keys).toContain("LOGIN");
+  });
+
+  it("resolves dynamic paths to their template string", () => {
+    const flat = flattenRoutes(PATHS);
+    const edit = flat.find((r) => r.key === "USERS.EDIT");
+    expect(edit?.path).toBe("/users/edit/:id");
+  });
+
+  it("resolves static paths correctly", () => {
+    const flat = flattenRoutes(PATHS);
+    const home = flat.find((r) => r.key === "HOME");
+    expect(home?.path).toBe("/");
+  });
+
+  it("can detect duplicate path strings across the tree", () => {
+    const DUPED = defineRoutes({
+      A: { FOO: "/foo" },
+      B: { FOO: "/foo" },
+    } as const);
+    const flat = flattenRoutes(DUPED);
+    const paths = flat.map((r) => r.path);
+    const dupes = paths.filter((p, i) => paths.indexOf(p) !== i);
+    expect(dupes).toEqual(["/foo"]);
+  });
+
+  it("accepts an optional prefix argument", () => {
+    const flat = flattenRoutes({ ROOT: "/users", EDIT: "/users/edit/:id" }, "USERS");
+    const keys = flat.map((r) => r.key);
+    expect(keys).toContain("USERS.ROOT");
+    expect(keys).toContain("USERS.EDIT");
+  });
+});
+
+// ─── buildPath strict mode ────────────────────────────────────────────────────
+
+describe("buildPath strict mode", () => {
+  it("throws a RangeError when a required param is missing", () => {
+    expect(() =>
+      buildPath("/users/:id", {}, undefined, { strict: true }),
+    ).toThrowError(RangeError);
+  });
+
+  it("includes the param name in the error message", () => {
+    expect(() =>
+      buildPath("/users/:id", {}, undefined, { strict: true }),
+    ).toThrowError(/\":id\"/);
+  });
+
+  it("throws with multiple missing params listed", () => {
+    expect(() =>
+      buildPath("/a/:x/b/:y", {}, undefined, { strict: true }),
+    ).toThrowError(/\":x\".*\":y\"/);
+  });
+
+  it("does not throw when all params are supplied", () => {
+    expect(() =>
+      buildPath("/users/:id", { id: 42 }, undefined, { strict: true }),
+    ).not.toThrow();
+  });
+
+  it("returns the resolved path when all params are supplied", () => {
+    expect(
+      buildPath("/users/:id", { id: 42 }, undefined, { strict: true }),
+    ).toBe("/users/42");
+  });
+
+  it("still appends query strings in strict mode", () => {
+    expect(
+      buildPath("/users/:id", { id: 7 }, { tab: "info" }, { strict: true }),
+    ).toBe("/users/7?tab=info");
+  });
+
+  it("emits console.warn (not throw) when strict is omitted and a param is missing", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    buildPath("/users/:id", {});
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Unresolved params"));
+    warn.mockRestore();
+  });
+
+  it("handles parameter values containing colons without throwing or warning", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const path = buildPath("/search/:query", { query: "a:b" }, undefined, { strict: true });
+    expect(path).toBe("/search/a:b");
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+// ─── build() strict mode (standalone helper) ─────────────────────────────────
+
+describe("build() strict mode", () => {
+  it("proxies strict option through to buildPath", () => {
+    expect(() =>
+      build("/items/:id", {}, undefined, { strict: true }),
+    ).toThrowError(RangeError);
+  });
+});
+
