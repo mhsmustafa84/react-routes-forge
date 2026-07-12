@@ -12,6 +12,27 @@ function createTemplatePattern(template: string): string {
   return escapeRegex(template).replace(PATH_PARAM_RE(), "([^/]+)");
 }
 
+export function appendQuery(path: string, query?: QueryParams): string {
+  if (!query) return path;
+
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null) continue;
+    if (Array.isArray(value)) {
+      value.forEach((v) => {
+        if (v !== undefined && v !== null) searchParams.append(key, String(v));
+      });
+    } else {
+      searchParams.append(key, String(value));
+    }
+  }
+
+  const queryString = searchParams.toString();
+  if (!queryString) return path;
+
+  return path + (path.includes("?") ? "&" : "?") + queryString;
+}
+
 export function buildPath(
   template: string,
   params: RouteParams,
@@ -46,29 +67,7 @@ export function buildPath(
     );
   }
 
-  let url = resolved;
-  if (query) {
-    const searchParams = new URLSearchParams();
-    for (const [key, value] of Object.entries(query)) {
-      if (value !== undefined && value !== null) {
-        if (Array.isArray(value)) {
-          value.forEach((v) => {
-            if (v !== undefined && v !== null) {
-              searchParams.append(key, String(v));
-            }
-          });
-        } else {
-          searchParams.append(key, String(value));
-        }
-      }
-    }
-    const queryString = searchParams.toString();
-    if (queryString) {
-      url += (url.includes("?") ? "&" : "?") + queryString;
-    }
-  }
-
-  return url;
+  return appendQuery(resolved, query);
 }
 
 export function extractParamNames(template: string): string[] {

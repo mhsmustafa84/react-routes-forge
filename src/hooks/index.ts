@@ -4,32 +4,25 @@
  */
 
 import { useParams, useNavigate, generatePath } from "react-router-dom";
-import type { QueryParams, RouteParam, RouteParams } from "../types";
+import type { ExtractParams, QueryParams, RouteParams } from "../types";
+import { appendQuery } from "../core/utils";
 
 // ─── useRouteParams ──────────────────────────────────────────────────────────
 
 /**
  * A typed wrapper around React Router's `useParams`.
  *
- * Pass the route's path template as a const generic to get a properly typed
- * params object back — no casting needed.
- *
  * @example
  * ```tsx
- * // Route is defined as '/users/edit/:id'
- * const { id } = useRouteParams<'/users/edit/:id'>();
+ * // Route: '/a/:x/b/:y/c/:z'
+ * const { x, y, z } = useRouteParams<'/a/:x/b/:y/c/:z'>();
  * ```
  */
-export function useRouteParams<
-  T extends string,
-  // Extracts ':id' → 'id', ':postId' → 'postId', etc.
-  K extends string = T extends `${string}:${infer P}/${infer R}`
-    ? P | (R extends `${string}:${infer Q}` ? Q : never)
-    : T extends `${string}:${infer P}`
-      ? P
-      : never,
->(): Record<K, string> {
-  return useParams() as Record<K, string>;
+export function useRouteParams<T extends string>(): Record<
+  ExtractParams<T>,
+  string
+> {
+  return useParams() as Record<ExtractParams<T>, string>;
 }
 
 // ─── useNavigateTo ──────────────────────────────────────────────────────────
@@ -81,26 +74,5 @@ export function useResolvedPath(
     Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
   );
 
-  if (query) {
-    const searchParams = new URLSearchParams();
-    for (const [key, value] of Object.entries(query)) {
-      if (value !== undefined && value !== null) {
-        if (Array.isArray(value)) {
-          value.forEach((v) => {
-            if (v !== undefined && v !== null) {
-              searchParams.append(key, String(v));
-            }
-          });
-        } else {
-          searchParams.append(key, String(value));
-        }
-      }
-    }
-    const queryString = searchParams.toString();
-    if (queryString) {
-      return path + (path.includes("?") ? "&" : "?") + queryString;
-    }
-  }
-
-  return path;
+  return appendQuery(path, query);
 }
