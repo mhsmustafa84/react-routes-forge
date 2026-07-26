@@ -74,6 +74,11 @@ export type BuildPathOptions = {
    * Useful in dev/test environments to catch missing params early.
    */
   strict?: boolean;
+  /**
+   * URL hash fragment to append after the query string (e.g. `"section"` → `#section`).
+   * The leading `#` is added automatically.
+   */
+  hash?: string;
 };
 
 /**

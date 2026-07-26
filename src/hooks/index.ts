@@ -98,5 +98,5 @@ export function useResolvedPath(
     Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
   );
 
-  return appendQuery(path, query);
+  return appendQuery(path, query, options?.hash);
 }

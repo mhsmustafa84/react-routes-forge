@@ -228,4 +228,31 @@ describe("useResolvedPath", () => {
 
     expect(result.current).toBe("/search/a:b");
   });
+
+  it("resolves a path with a hash fragment", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/users/:id", { id: 42 }, undefined, { hash: "profile" }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/users/42#profile");
+  });
+
+  it("resolves a path with query string and hash fragment", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/users/:id", { id: 5 }, { tab: "info" }, { hash: "details" }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/users/5?tab=info#details");
+  });
+
+  it("resolves a path with hash only (no query)", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/static", {}, undefined, { hash: "top" }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/static#top");
+  });
 });

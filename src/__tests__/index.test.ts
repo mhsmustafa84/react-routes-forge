@@ -359,6 +359,53 @@ describe("search query support", () => {
   });
 });
 
+// ─── hash fragment support ────────────────────────────────────────────────────
+
+describe("hash fragment support", () => {
+  it("appends a hash to a static path via buildPath options", () => {
+    expect(buildPath("/users", {}, undefined, { hash: "section" })).toBe("/users#section");
+  });
+
+  it("appends a hash after the query string", () => {
+    expect(
+      buildPath("/users/:id", { id: 42 }, { tab: "info" }, { hash: "details" }),
+    ).toBe("/users/42?tab=info#details");
+  });
+
+  it("appends a hash without query string", () => {
+    expect(
+      buildPath("/users/:id", { id: 7 }, undefined, { hash: "top" }),
+    ).toBe("/users/7#top");
+  });
+
+  it("works with defineRoutes fluent .build()", () => {
+    const PATHS = defineRoutes({
+      USERS: "/users/:id",
+    } as const);
+
+    expect(PATHS.USERS.build({ id: 5 }, undefined, { hash: "profile" })).toBe("/users/5#profile");
+  });
+
+  it("works with defineRoutes fluent .build() with query + hash", () => {
+    const PATHS = defineRoutes({
+      SEARCH: "/search/:q",
+    } as const);
+
+    expect(
+      PATHS.SEARCH.build({ q: "hello" }, { page: "1" }, { hash: "results" }),
+    ).toBe("/search/hello?page=1#results");
+  });
+
+  it("does not add hash when options has no hash", () => {
+    expect(buildPath("/users/:id", { id: 1 })).toBe("/users/1");
+    expect(buildPath("/users/:id", { id: 1 }, undefined, { strict: true })).toBe("/users/1");
+  });
+
+  it("build() standalone supports hash option", () => {
+    expect(build("/users/:id", { id: 3 }, undefined, { hash: "edit" })).toBe("/users/3#edit");
+  });
+});
+
 // ─── flattenRoutes ────────────────────────────────────────────────────────────
 
 describe("flattenRoutes", () => {

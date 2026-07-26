@@ -12,25 +12,33 @@ function createTemplatePattern(template: string): string {
   return escapeRegex(template).replace(PATH_PARAM_RE(), "([^/]+)");
 }
 
-export function appendQuery(path: string, query?: QueryParams): string {
-  if (!query) return path;
+export function appendQuery(path: string, query?: QueryParams, hash?: string): string {
+  let result = path;
 
   const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
-    if (value === undefined || value === null) continue;
-    if (Array.isArray(value)) {
-      value.forEach((v) => {
-        if (v !== undefined && v !== null) searchParams.append(key, String(v));
-      });
-    } else {
-      searchParams.append(key, String(value));
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (value === undefined || value === null) continue;
+      if (Array.isArray(value)) {
+        value.forEach((v) => {
+          if (v !== undefined && v !== null) searchParams.append(key, String(v));
+        });
+      } else {
+        searchParams.append(key, String(value));
+      }
     }
   }
 
   const queryString = searchParams.toString();
-  if (!queryString) return path;
+  if (queryString) {
+    result += (result.includes("?") ? "&" : "?") + queryString;
+  }
 
-  return path + (path.includes("?") ? "&" : "?") + queryString;
+  if (hash) {
+    result += "#" + hash;
+  }
+
+  return result;
 }
 
 export function buildPath(
@@ -76,7 +84,7 @@ export function buildPath(
     }
   }
 
-  return appendQuery(resolved, query);
+  return appendQuery(resolved, query, options?.hash);
 }
 
 export function extractParamNames(template: string): string[] {
