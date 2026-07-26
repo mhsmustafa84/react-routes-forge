@@ -120,13 +120,11 @@ export function extractParamsFromPath(
 }
 
 export function joinPaths(...segments: string[]): string {
-  return (
-    "/" +
-    segments
-      .map((segment) => segment.replace(/^\/+|\/+$/g, ""))
-      .filter(Boolean)
-      .join("/")
+  const processed = segments.map((segment) =>
+    segment.replace(/^\/+/, "").replace(/\/+$/, ""),
   );
+  const filtered = processed.filter(Boolean);
+  return "/" + filtered.join("/");
 }
 
 export function build(
