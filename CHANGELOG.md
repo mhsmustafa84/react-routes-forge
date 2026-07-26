@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.1](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.1.0...v1.1.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* handle optional param segments (:param?) correctly ([a801029](https://github.com/mhsmustafa84/react-routes-forge/commit/a80102954bc72947dd1900152203c0eaaadf6cb6))
+
 ## [1.1.0](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.0.3...v1.1.0) (2026-07-12)
 
 
