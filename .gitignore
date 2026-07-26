@@ -20,3 +20,6 @@ Thumbs.db
 
 .env
 .env.local
+
+# Vitepress cache
+docs/.vitepress/cache/
