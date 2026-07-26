@@ -26,6 +26,7 @@ One source of truth for your routes — templates for `<Route path={...} />` and
   - [`joinPaths(...segments)`](#joinpathssegments)
   - [`getParamNames(template)`](#getparamnamestemplate)
   - [`flattenRoutes(routes)`](#flattenroutesroutes)
+  - [`getBreadcrumbs(routes, currentPath, options?)`](#getbreadcrumbsroutes-currentpath-options)
 - [React hooks](#react-hooks)
   - [`useRouteParams<T>()`](#useroutparamst)
   - [`useNavigateTo()`](#usenavigateto)
@@ -170,6 +171,7 @@ Quick reference for everything the package exports. Click through to the full se
 | [`joinPaths(...segments)`](#joinpathssegments)                                                 | function | Join and normalize path segments                          |
 | [`getParamNames(template)`](#getparamnamestemplate)                                            | function | List the `:param` names in a template                     |
 | [`flattenRoutes(routes)`](#flattenroutesroutes)                                                | function | Flatten a `PATHS` tree for sitemaps / duplicate detection |
+| [`getBreadcrumbs(routes, currentPath, options?)`](#getbreadcrumbsroutes-currentpath-options)    | function | Build a breadcrumb trail from a route tree and current URL |
 | [`useRouteParams<T>()`](#useroutparamst)                                                       | hook     | Typed wrapper around React Router's `useParams`           |
 | [`useNavigateTo()`](#usenavigateto)                                                            | hook     | Typed wrapper around React Router's `useNavigate`         |
 | [`useResolvedPath(...)`](#useresolvedpathtemplate-params-query-options)                        | hook     | Resolve a template to a string without navigating         |
@@ -358,6 +360,59 @@ it("has no duplicate route paths", () => {
   const dupes = paths.filter((p, i) => paths.indexOf(p) !== i);
   expect(dupes).toEqual([]);
 });
+```
+
+---
+
+### `getBreadcrumbs(routes, currentPath, options?)`
+
+Walks a route tree (or a pre-flattened array from `flattenRoutes()`) and returns every route that is an ancestor of (or an exact match to) the current URL. Dynamic params in ancestor paths are automatically resolved from the matched portion of the URL. Query strings on `currentPath` are ignored.
+
+Each breadcrumb entry contains:
+- **`key`** — the dot-joined key from the route tree (e.g. `"USERS.EDIT"`)
+- **`label`** — a human-readable label derived from the key (e.g. `"USERS.ROOT"` → `"Users"`, `"USERS.EDIT"` → `"Edit"`)
+- **`path`** — the resolved breadcrumb path with params filled in (e.g. `"/users/edit/42"`)
+- **`isCurrent`** — `true` only for the deepest (exact) match
+
+```ts
+import { defineRoutes, getBreadcrumbs } from "react-routes-forge";
+
+const PATHS = defineRoutes({
+  HOME: "/",
+  USERS: {
+    ROOT: "/users",
+    EDIT: "/users/edit/:id",
+  },
+  SERVICES: {
+    BCC: {
+      EDIT: "/services/bcc/edit/:id",
+    },
+  },
+} as const);
+
+getBreadcrumbs(PATHS, "/users/edit/42");
+// →
+// [
+//   { key: "HOME",       label: "Home",  path: "/",             isCurrent: false },
+//   { key: "USERS.ROOT", label: "Users", path: "/users",        isCurrent: false },
+//   { key: "USERS.EDIT", label: "Edit",  path: "/users/edit/42", isCurrent: true  },
+// ]
+```
+
+**Custom label resolver** — override the default key-to-label conversion:
+
+```ts
+getBreadcrumbs(PATHS, "/users/edit/42", {
+  labelResolver: (key) => key.split(".").pop()!.replace(/_/g, " ").toUpperCase(),
+});
+// → [{ label: "HOME" }, { label: "ROOT" }, { label: "EDIT" }]
+```
+
+**Pre-flattened input** — pass a cached `flattenRoutes()` result instead of the tree:
+
+```ts
+const flat = flattenRoutes(PATHS);
+getBreadcrumbs(flat, "/users/edit/42"); // same result as passing the tree
 ```
 
 ---
