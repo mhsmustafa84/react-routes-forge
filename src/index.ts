@@ -15,6 +15,8 @@ export type {
   PathParams,
   BuildPathOptions,
   FlatRoute,
+  BreadcrumbItem,
+  BreadcrumbOptions,
 } from "./types";
 
 // Utilities
@@ -26,6 +28,7 @@ export {
   build,
   getParamNames,
   flattenRoutes,
+  getBreadcrumbs,
 } from "./core/utils";
 
 // React hooks (tree-shakeable — only bundled if imported)

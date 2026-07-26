@@ -85,3 +85,37 @@ export type FlatRoute = {
   /** The raw path template string, e.g. `"/services/bcc/edit/:id"`. */
   path: string;
 };
+
+/**
+ * A single breadcrumb entry produced by `getBreadcrumbs()`.
+ *
+ * @see {@link getBreadcrumbs}
+ */
+export type BreadcrumbItem = {
+  /** Dot-joined key from the route tree, e.g. `"USERS.EDIT"`. */
+  key: string;
+  /** Human-readable label derived from the key (or from `labelResolver`). */
+  label: string;
+  /** The resolved path (params filled in), e.g. `"/users/edit/42"`. */
+  path: string;
+  /** `true` if this is the current page (exact match). */
+  isCurrent: boolean;
+};
+
+/**
+ * Options for `getBreadcrumbs()`.
+ *
+ * @see {@link getBreadcrumbs}
+ */
+export type BreadcrumbOptions = {
+  /**
+   * Custom label resolver. Receives the dot-joined key
+   * (e.g. `"USERS.BCC.EDIT"`) and returns the display label.
+   *
+   * @default
+   * The default implementation takes the last key segment,
+   * replaces underscores with spaces, and capitalises the
+   * first letter (e.g. `"PRODUCT_DETAILS"` → `"Product Details"`).
+   */
+  labelResolver?: (key: string) => string;
+};

@@ -13,6 +13,7 @@ import {
   build,
   getParamNames,
   flattenRoutes,
+  getBreadcrumbs,
 } from "../core/utils";
 
 // ─── defineRoutes ────────────────────────────────────────────────────────────
@@ -545,6 +546,99 @@ describe("build() strict mode", () => {
     expect(() =>
       build("/items/:id", {}, undefined, { strict: true }),
     ).toThrowError(RangeError);
+  });
+});
+
+// ─── getBreadcrumbs ───────────────────────────────────────────────────────────
+
+describe("getBreadcrumbs", () => {
+  const PATHS = defineRoutes({
+    HOME: "/",
+    USERS: {
+      ROOT: "/users",
+      EDIT: "/users/edit/:id",
+    },
+    SERVICES: {
+      BCC: {
+        EDIT: "/services/bcc/edit/:id",
+      },
+    },
+  } as const);
+
+  it("returns breadcrumbs for a nested dynamic path", () => {
+    const crumbs = getBreadcrumbs(PATHS, "/users/edit/42");
+
+    expect(crumbs).toHaveLength(3);
+    expect(crumbs[0]).toMatchObject({ key: "HOME", label: "Home", path: "/", isCurrent: false });
+    expect(crumbs[1]).toMatchObject({ key: "USERS.ROOT", label: "Users", path: "/users", isCurrent: false });
+    expect(crumbs[2]).toMatchObject({ key: "USERS.EDIT", label: "Edit", path: "/users/edit/42", isCurrent: true });
+  });
+
+  it("includes ancestor routes via prefix matching", () => {
+    const crumbs = getBreadcrumbs(PATHS, "/services/bcc/edit/99");
+
+    // Only HOME matches as prefix — no intermediate route for /services/bcc
+    expect(crumbs).toHaveLength(2);
+    expect(crumbs[0].key).toBe("HOME");
+    expect(crumbs[0].isCurrent).toBe(false);
+    expect(crumbs[1].key).toBe("SERVICES.BCC.EDIT");
+    expect(crumbs[1].isCurrent).toBe(true);
+  });
+
+  it("marks only the deepest match as isCurrent", () => {
+    const crumbs = getBreadcrumbs(PATHS, "/users/edit/42");
+    const current = crumbs.filter((c) => c.isCurrent);
+    expect(current).toHaveLength(1);
+    expect(current[0].key).toBe("USERS.EDIT");
+  });
+
+  it("handles static paths (no params)", () => {
+    const crumbs = getBreadcrumbs(PATHS, "/users");
+
+    expect(crumbs).toHaveLength(2);
+    expect(crumbs[0].key).toBe("HOME");
+    expect(crumbs[1].key).toBe("USERS.ROOT");
+    expect(crumbs[1].path).toBe("/users");
+    expect(crumbs[1].isCurrent).toBe(true);
+  });
+
+  it("returns one item for the root path", () => {
+    const crumbs = getBreadcrumbs(PATHS, "/");
+    expect(crumbs).toHaveLength(1);
+    expect(crumbs[0].key).toBe("HOME");
+    expect(crumbs[0].isCurrent).toBe(true);
+  });
+
+  it("accepts a pre-flattened route array", () => {
+    const flat = flattenRoutes(PATHS);
+    const crumbs = getBreadcrumbs(flat, "/users/edit/7");
+
+    expect(crumbs).toHaveLength(3);
+    expect(crumbs[0].key).toBe("HOME");
+    expect(crumbs[1].key).toBe("USERS.ROOT");
+    expect(crumbs[2].key).toBe("USERS.EDIT");
+  });
+
+  it("ignores query strings", () => {
+    const crumbs = getBreadcrumbs(PATHS, "/users/edit/42?tab=info");
+    expect(crumbs).toHaveLength(3);
+    expect(crumbs[2].path).toBe("/users/edit/42");
+  });
+
+  it("uses custom labelResolver when provided", () => {
+    const crumbs = getBreadcrumbs(PATHS, "/users/edit/42", {
+      labelResolver: (key) => key.toUpperCase(),
+    });
+
+    expect(crumbs[0].label).toBe("HOME");
+    expect(crumbs[1].label).toBe("USERS.ROOT");
+    expect(crumbs[2].label).toBe("USERS.EDIT");
+  });
+
+  it("returns empty array when no routes match", () => {
+    const crumbs = getBreadcrumbs(PATHS, "/nonexistent");
+    expect(crumbs).toHaveLength(1);
+    expect(crumbs[0].key).toBe("HOME");
   });
 });
 

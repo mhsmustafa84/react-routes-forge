@@ -1,4 +1,4 @@
-import type { QueryParams, RouteParam, RouteParams, BuildPathOptions, FlatRoute } from "../types";
+import type { BreadcrumbItem, BreadcrumbOptions, QueryParams, RouteParam, RouteParams, BuildPathOptions, FlatRoute } from "../types";
 
 /** Returns a fresh RegExp each call — avoids shared `lastIndex` state on /g patterns. */
 const PATH_PARAM_RE = () => /:([^/]+)/g;
@@ -206,5 +206,113 @@ export function flattenRoutes(
   }
 
   return entries;
+}
+
+function deriveBreadcrumbLabel(key: string): string {
+  const parts = key.split(".");
+  const last = parts[parts.length - 1] ?? key;
+  // Use the parent segment when the leaf is the conventional "ROOT" key,
+  // so USERS.ROOT → "Users" rather than "Root".
+  const raw = last === "ROOT" && parts.length > 1 ? parts[parts.length - 2]! : last;
+  return raw
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
+}
+
+/**
+ * Build a breadcrumb trail from a route tree or a flat route list.
+ *
+ * For a given `currentPath`, it walks the route tree and returns every route
+ * that is an ancestor of (or an exact match to) the current page.  Ancestors
+ * are matched by prefix (e.g. `/users` matches `/users/edit/42/posts`).
+ *
+ * Dynamic params in ancestor paths are automatically resolved from the
+ * matched portion of the URL.
+ *
+ * @param routes - A route tree (output of `defineRoutes`) or a pre-flattened
+ *                 array from `flattenRoutes()`.
+ * @param currentPath - The current URL (with or without query string).
+ * @param options - Optional label resolver.
+ * @returns An array of {@link BreadcrumbItem} ordered by depth
+ *          (most general first), where the last item is the current page.
+ *
+ * @example
+ * ```ts
+ * const PATHS = defineRoutes({
+ *   HOME: "/",
+ *   USERS: { ROOT: "/users", EDIT: "/users/edit/:id" },
+ * } as const);
+ *
+ * getBreadcrumbs(PATHS, "/users/edit/42");
+ * // → [
+ * //     { key: "HOME",       label: "Home",  path: "/",             isCurrent: false },
+ * //     { key: "USERS.ROOT", label: "Users", path: "/users",        isCurrent: false },
+ * //     { key: "USERS.EDIT", label: "Edit",  path: "/users/edit/42", isCurrent: true  },
+ * //   ]
+ * ```
+ */
+export function getBreadcrumbs(
+  routes: Record<string, unknown> | FlatRoute[],
+  currentPath: string,
+  options?: BreadcrumbOptions,
+): BreadcrumbItem[] {
+  const flat = Array.isArray(routes)
+    ? routes
+    : flattenRoutes(routes);
+  const pathname = currentPath.split("?")[0] ?? "";
+  const labelFn = options?.labelResolver ?? deriveBreadcrumbLabel;
+
+  const items: Array<{
+    key: string;
+    resolvedPath: string;
+    template: string;
+    isCurrent: boolean;
+  }> = [];
+
+  for (const route of flat) {
+    const exactRe = matchPath(route.path);
+    const exactMatch = pathname.match(exactRe);
+
+    if (exactMatch) {
+      const params = extractParamsFromPath(route.path, exactMatch[0]);
+      const resolved = isDynamic(route.path)
+        ? buildPath(route.path, params)
+        : route.path;
+      items.push({
+        key: route.key,
+        resolvedPath: resolved,
+        template: route.path,
+        isCurrent: true,
+      });
+      continue;
+    }
+
+    const prefixRe = new RegExp(`^${createTemplatePattern(route.path)}`);
+    const prefixMatch = pathname.match(prefixRe);
+
+    if (prefixMatch) {
+      const matchedPortion = prefixMatch[0];
+      const params = extractParamsFromPath(route.path, matchedPortion);
+      const resolved = isDynamic(route.path)
+        ? buildPath(route.path, params)
+        : route.path;
+      items.push({
+        key: route.key,
+        resolvedPath: resolved,
+        template: route.path,
+        isCurrent: false,
+      });
+    }
+  }
+
+  items.sort((a, b) => a.template.length - b.template.length);
+
+  return items.map((item) => ({
+    key: item.key,
+    label: labelFn(item.key),
+    path: item.resolvedPath,
+    isCurrent: item.isCurrent,
+  }));
 }
 
