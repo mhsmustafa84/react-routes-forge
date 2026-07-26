@@ -32,11 +32,14 @@ export type RouteMap = {
  * Extracts param names from a path template string.
  * e.g. '/users/:id/posts/:postId' → 'id' | 'postId'
  */
+type StripOptional<S extends string> =
+  S extends `${infer Name}?` ? Name : S;
+
 export type ExtractParams<T extends string> =
   T extends `${string}:${infer Param}/${infer Rest}`
-    ? Param | ExtractParams<`/${Rest}`>
+    ? StripOptional<Param> | ExtractParams<`/${Rest}`>
     : T extends `${string}:${infer Param}`
-      ? Param
+      ? StripOptional<Param>
       : never;
 
 /**

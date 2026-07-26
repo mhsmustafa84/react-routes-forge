@@ -354,6 +354,63 @@ describe("flattenRoutes", () => {
   });
 });
 
+// ─── optional param segments (:param?) ────────────────────────────────────────
+
+describe("optional param segments (:param?)", () => {
+  it("extracts param name without trailing ?", () => {
+    expect(extractParamNames("/users/:id?")).toEqual(["id"]);
+  });
+
+  it("extracts multiple optional params correctly", () => {
+    expect(extractParamNames("/:a?/:b?")).toEqual(["a", "b"]);
+  });
+
+  it("mixes optional and required params", () => {
+    expect(extractParamNames("/users/:id?/posts/:postId")).toEqual(["id", "postId"]);
+  });
+
+  it("buildPath resolves optional param when provided", () => {
+    expect(buildPath("/users/:id?", { id: 42 })).toBe("/users/42");
+  });
+
+  it("buildPath leaves :param placeholder when optional param is missing", () => {
+    expect(buildPath("/users/:id?", {})).toBe("/users/:id");
+  });
+
+  it("buildPath warns when optional param is missing (same warning as required)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    buildPath("/users/:id?", {});
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Unresolved params"));
+    warn.mockRestore();
+  });
+
+  it("buildPath throws in strict mode when optional param is missing", () => {
+    expect(() =>
+      buildPath("/users/:id?", {}, undefined, { strict: true }),
+    ).toThrowError(RangeError);
+  });
+
+  it("isDynamic returns true for paths with optional params", () => {
+    expect(isDynamic("/users/:id?")).toBe(true);
+  });
+
+  it("buildPath works with optional param in defineRoutes", () => {
+    const PATHS = defineRoutes({
+      USERS: "/users/:id?",
+    } as const);
+
+    expect(PATHS.USERS.build({ id: 42 })).toBe("/users/42");
+  });
+
+  it("isActivePath matches optional param path", () => {
+    expect(isActivePath("/users/42", "/users/:id?")).toBe(true);
+  });
+
+  it("extractParamsFromPath handles optional param syntax", () => {
+    expect(extractParamsFromPath("/users/:id?", "/users/42")).toEqual({ id: "42" });
+  });
+});
+
 // ─── buildPath strict mode ────────────────────────────────────────────────────
 
 describe("buildPath strict mode", () => {

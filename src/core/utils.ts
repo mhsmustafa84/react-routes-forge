@@ -48,7 +48,7 @@ export function buildPath(
     const value = params[name];
     const replacement = value === undefined || value === null ? `:${name}` : String(value);
     return path.replace(
-      new RegExp(`:${escapeRegex(name)}(?=/|$)`, "g"),
+      new RegExp(`:${escapeRegex(name)}\\??(?=/|$)`, "g"),
       replacement,
     );
   }, template);
@@ -81,7 +81,7 @@ export function buildPath(
 
 export function extractParamNames(template: string): string[] {
   return [...template.matchAll(PATH_PARAM_RE())].map(
-    (match) => match[1] as string,
+    (match) => (match[1] as string).replace(/\?$/, ""),
   );
 }
 
