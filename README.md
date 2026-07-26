@@ -6,6 +6,8 @@ One source of truth for your routes — templates for `<Route path={...} />` and
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](#)
+[![Node.js 24+](https://img.shields.io/badge/Node.js-24+-green.svg)](#requirements)
+[![Combined CI/CD](https://github.com/mhsmustafa84/react-routes-forge/actions/workflows/ci-security.yml/badge.svg)](https://github.com/mhsmustafa84/react-routes-forge/actions/workflows/ci-security.yml)
 
 ---
 
