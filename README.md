@@ -32,6 +32,7 @@ One source of truth for your routes — templates for `<Route path={...} />` and
   - [`useNavigateTo()`](#usenavigateto)
   - [`useResolvedPath(template, params, query?, options?)`](#useresolvedpathtemplate-params-query-options)
 - [Query string support](#query-string-support)
+- [Hash fragment support](#hash-fragment-support)
 - [Strict mode](#strict-mode)
 - [Migrating from the old pattern](#migrating-from-the-old-pattern)
 - [Known behaviours & gotchas](#known-behaviours--gotchas)
@@ -236,6 +237,7 @@ const PATHS = defineRoutes({
 
 PATHS.SERVICES.ROOT; // '/services'
 PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.build({ id: 7 }); // '/services/beneficiary-care-center/edit/7'
+PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.build({ id: 7 }, { tab: "info" }, { hash: "details" }); // → '/services/beneficiary-care-center/edit/7?tab=info#details'
 PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.paramNames; // ['id']
 ```
 
@@ -260,6 +262,12 @@ build("/users", {}, { sort: "asc" });
 // Strict mode — throw instead of warn when a param is missing
 build("/users/:id", {}, undefined, { strict: true });
 // ✗ throws RangeError: [route-forge] Missing required param(s) ":id" in template "/users/:id".
+
+// Hash fragment — appended after the query string
+build("/users/:id", { id: 42 }, { tab: "info" }, { hash: "details" });
+// → '/users/42?tab=info#details'
+build("/page", {}, undefined, { hash: "section" });
+// → '/page#section'
 ```
 
 ---
@@ -520,6 +528,10 @@ const path = useResolvedPath("/users/:id", { id: 42 }, { tab: "info" });
 
 // Strict mode — throws RangeError instead of warning on missing params
 const path = useResolvedPath("/users/:id", {}, undefined, { strict: true });
+
+// With hash fragment
+const path = useResolvedPath("/page", {}, undefined, { hash: "section" });
+// → '/page#section'
 ```
 
 ---
@@ -557,6 +569,32 @@ import { build } from "react-routes-forge";
 build(PATHS.USERS.ROOT, {}, { sort: "asc", page: 2 });
 // → '/users?sort=asc&page=2'
 ```
+
+---
+
+## Hash fragment support
+
+URL hash fragments (`#section`) are supported in every path-resolving function — `.build()`, `build()`, and `useResolvedPath()` — via the `hash` option. The hash is appended after the query string, if any.
+
+```ts
+// Via fluent .build() on a dynamic route
+PATHS.USERS.DETAILS.build({ id: 42 }, undefined, { hash: "profile" });
+// → '/users/42#profile'
+
+// With query + hash
+PATHS.USERS.DETAILS.build({ id: 42 }, { tab: "info" }, { hash: "details" });
+// → '/users/42?tab=info#details'
+
+// Via standalone build()
+build("/page", {}, undefined, { hash: "section" });
+// → '/page#section'
+
+// Via useResolvedPath
+useResolvedPath("/users/:id", { id: 5 }, { tab: "billing" }, { hash: "invoice" });
+// → '/users/5?tab=billing#invoice'
+```
+
+The leading `#` is added automatically — pass just the fragment name (e.g. `"details"`, not `"#details"`).
 
 ---
 
