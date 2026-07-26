@@ -50,7 +50,10 @@
     "test:watch": "bun test --watch",
     "prepare": "husky",
     "prepublishOnly": "bun run test && bun run build",
-    "release": "standard-version"
+    "release": "standard-version",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "peerDependencies": {
     "react": ">=17",
@@ -75,6 +78,7 @@
     "standard-version": "^9.5.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0",
+    "vitepress": "^1.6.4",
     "vitest": "^4.1.10"
   }
 }
