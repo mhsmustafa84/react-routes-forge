@@ -95,10 +95,9 @@ export function isActivePath(
   options: { exact?: boolean } = { exact: true },
 ): boolean {
   const pathWithoutSearch = currentPath.split("?")[0] ?? "";
-  const pattern = createTemplatePattern(template);
   const regex = options.exact
-    ? new RegExp(`^${pattern}$`)
-    : new RegExp(`^${pattern}`);
+    ? matchPath(template)
+    : new RegExp(`^${createTemplatePattern(template)}`);
 
   return regex.test(pathWithoutSearch);
 }
@@ -109,8 +108,7 @@ export function extractParamsFromPath(
 ): Record<string, string> {
   const pathWithoutSearch = resolvedPath.split("?")[0] ?? "";
   const paramNames = extractParamNames(template);
-  const regex = new RegExp(`^${createTemplatePattern(template)}$`);
-  const match = pathWithoutSearch.match(regex);
+  const match = pathWithoutSearch.match(matchPath(template));
 
   if (!match) return {};
 
@@ -138,6 +136,32 @@ export function build(
 
 export function getParamNames(template: string): string[] {
   return extractParamNames(template);
+}
+
+/**
+ * Convert a route template string into an anchored `RegExp` for matching paths.
+ *
+ * Each `:param` segment becomes a capturing group so the returned regex
+ * can be used with `.test()` or `.exec()`.
+ *
+ * Query strings are **not** stripped — callers should split on `"?"` first
+ * (see {@link isActivePath} or {@link extractParamsFromPath} for higher-level
+ * helpers that handle this automatically).
+ *
+ * @param template - A route template, e.g. `"/users/:id"` or `"/users/:id/posts/:postId"`.
+ * @returns A `RegExp` anchored with `^` and `$` that captures param values.
+ *
+ * @example
+ * ```ts
+ * const re = matchPath("/users/:id");
+ * re.test("/users/42");          // true
+ * re.exec("/users/42");          // ["/users/42", "42"]
+ * re.test("/users/42/posts");    // false (exact match)
+ * re.test("/users/42?page=1");   // true (query is part of captured value)
+ * ```
+ */
+export function matchPath(template: string): RegExp {
+  return new RegExp(`^${createTemplatePattern(template)}$`);
 }
 
 /**

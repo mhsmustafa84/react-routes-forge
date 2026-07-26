@@ -8,6 +8,7 @@ import {
 import {
   isActivePath,
   extractParamsFromPath,
+  matchPath,
   joinPaths,
   build,
   getParamNames,
@@ -203,6 +204,77 @@ describe("extractParamsFromPath", () => {
 
   it("returns empty object when path does not match", () => {
     expect(extractParamsFromPath("/users/:id", "/roles/42")).toEqual({});
+  });
+});
+
+// ─── matchPath ────────────────────────────────────────────────────────────────
+
+describe("matchPath", () => {
+  it("returns a RegExp from a static template", () => {
+    const re = matchPath("/users");
+    expect(re).toBeInstanceOf(RegExp);
+  });
+
+  it("returns a RegExp from a dynamic template", () => {
+    const re = matchPath("/users/:id");
+    expect(re).toBeInstanceOf(RegExp);
+  });
+
+  it("matches exact paths", () => {
+    const re = matchPath("/users/:id");
+    expect(re.test("/users/42")).toBe(true);
+    expect(re.test("/users/42/posts")).toBe(false);
+  });
+
+  it("captures param values via exec", () => {
+    const re = matchPath("/users/:id");
+    const match = re.exec("/users/42");
+    expect(match).not.toBeNull();
+    expect(match![1]).toBe("42");
+  });
+
+  it("captures multiple params", () => {
+    const re = matchPath("/users/:userId/posts/:postId");
+    const match = re.exec("/users/1/posts/99");
+    expect(match).not.toBeNull();
+    expect(match![1]).toBe("1");
+    expect(match![2]).toBe("99");
+  });
+
+  it("query strings are included in the captured value (caller strips ?query before matching)", () => {
+    const re = matchPath("/users/:id");
+    const match = re.exec("/users/42?tab=profile");
+    expect(match![1]).toBe("42?tab=profile");
+  });
+
+  it("strips query string before matching for correct param extraction", () => {
+    const pathname = "/users/42?tab=profile".split("?")[0];
+    const re = matchPath("/users/:id");
+    expect(re.test(pathname)).toBe(true);
+    expect(re.exec(pathname)![1]).toBe("42");
+  });
+
+  it("works with optional param templates", () => {
+    const re = matchPath("/users/:id?");
+    expect(re.test("/users/42")).toBe(true);
+  });
+
+  it("does not match non-matching paths", () => {
+    const re = matchPath("/users/:id");
+    expect(re.test("/roles/42")).toBe(false);
+    expect(re.test("/users/")).toBe(false);
+  });
+
+  it("returns a fresh RegExp each call (no lastIndex bleed)", () => {
+    const re1 = matchPath("/users/:id");
+    const re2 = matchPath("/users/:id");
+    expect(re1).not.toBe(re2);
+  });
+
+  it("handles regex-special characters in static path segments", () => {
+    const re = matchPath("/search/:query");
+    expect(re.test("/search/foo.bar")).toBe(true);
+    expect(re.test("/search/foo+bar")).toBe(true);
   });
 });
 

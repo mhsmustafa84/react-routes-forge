@@ -21,6 +21,7 @@ export type {
 export {
   isActivePath,
   extractParamsFromPath,
+  matchPath,
   joinPaths,
   build,
   getParamNames,
