@@ -1,17 +1,12 @@
-/**
- * React integration hooks for route-forge.
- * These are thin wrappers — import only if you're using React Router.
- */
-
 import { useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import type {
   ExtractParams,
   QueryParams,
   RouteParams,
   BuildPathOptions,
 } from "../types";
-import { buildPath } from "../core/utils";
+import { buildPath, isActivePath, extractQueryFromPath, appendQuery } from "../core/utils";
 
 // ─── useRouteParams ──────────────────────────────────────────────────────────
 
@@ -32,24 +27,24 @@ import { buildPath } from "../core/utils";
  * ```
  */
 // Overload 1: no-arg generic — caller provides the template literal as T
-export function useRouteParams<T extends string>(): Record<
+export function useRouteParams<T extends string = string>(): Record<
   ExtractParams<T>,
   string
 >;
-// Overload 2: pass a route from defineRoutes() — T is inferred from paramNames
-export function useRouteParams<T extends string>(
-  route: { readonly paramNames: ReadonlyArray<T> | Array<T> },
-): Record<T, string>;
+// Overload 2: pass a route from defineRoutes() — P is inferred from paramNames array element type
+export function useRouteParams<P extends string>(
+  route: { readonly paramNames: ReadonlyArray<P> | Array<P> },
+): Record<P, string>;
 // Implementation
-export function useRouteParams<T extends string>(
-  _route?: { readonly paramNames: ReadonlyArray<T> | Array<T> },
-): Record<T, string> | Record<ExtractParams<T>, string> {
-  return useParams() as Record<T, string>;
+export function useRouteParams<P extends string>(
+  _route?: { readonly paramNames: ReadonlyArray<P> | Array<P> },
+): Record<string, string> {
+  return useParams() as Record<string, string>;
 }
 
 // ─── useNavigateTo ──────────────────────────────────────────────────────────
 
-type NavigateOptions = {
+export type NavigateOptions = {
   replace?: boolean;
   state?: unknown;
 };
@@ -81,11 +76,6 @@ export function useNavigateTo() {
 /**
  * Resolves a dynamic path template against params, mirroring `buildPath()`.
  *
- * This is a thin convenience wrapper around {@link buildPath} kept in the hooks
- * entry so splat (`*`), optional (`:param?`) and encoding behaviour stay
- * identical across React Router v6 and v7 (whose `generatePath` URL-encodes
- * values itself, which would double-encode with this library's own encoding).
- *
  * Accepts the same `options` bag as `build()` / `buildPath()`:
  * - (default) soft-fail: `console.warn` and return the partial path with unresolved `:param` placeholders.
  * - `{ strict: true }`: throw a `RangeError` on missing params — matching `.build()`'s strict behaviour.
@@ -105,3 +95,67 @@ export function useResolvedPath(
 ): string {
   return buildPath(template, params, query, options);
 }
+
+// ─── useActivePath ───────────────────────────────────────────────────────────
+
+/**
+ * A hook that checks whether the current location matches a route template or path.
+ * Thin wrapper around `isActivePath(useLocation().pathname, template, options)`.
+ *
+ * @example
+ * ```tsx
+ * const isActive = useActivePath(PATHS.USERS.ROOT, { exact: false });
+ * ```
+ */
+export function useActivePath(
+  template: string,
+  options: { exact?: boolean; caseSensitive?: boolean } = {
+    exact: true,
+    caseSensitive: false,
+  },
+): boolean {
+  const location = useLocation();
+  return isActivePath(location.pathname, template, options);
+}
+
+// ─── useTypedSearchParams ────────────────────────────────────────────────────
+
+/**
+ * A typed wrapper around React Router's `useSearchParams`.
+ * Returns parsed query params object and a setter that updates query params.
+ *
+ * @example
+ * ```tsx
+ * const [query, setQuery] = useTypedSearchParams({ coerceBooleans: true, coerceNumbers: true });
+ * setQuery({ tab: 'details', page: 2 });
+ * ```
+ */
+export function useTypedSearchParams(options?: {
+  coerceBooleans?: boolean;
+  coerceNumbers?: boolean;
+}) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+
+  const queryParams = extractQueryFromPath(
+    `${location.pathname}?${searchParams.toString()}`,
+    options,
+  );
+
+  const setTypedQuery = useCallback(
+    (
+      newQuery: QueryParams,
+      navigateOptions?: { replace?: boolean; state?: unknown },
+    ) => {
+      const updatedPath = appendQuery("", newQuery);
+      const updatedSearchParams = new URLSearchParams(
+        updatedPath.startsWith("?") ? updatedPath.slice(1) : updatedPath,
+      );
+      setSearchParams(updatedSearchParams, navigateOptions);
+    },
+    [setSearchParams],
+  );
+
+  return [queryParams, setTypedQuery] as const;
+}
+

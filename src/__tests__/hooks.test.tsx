@@ -8,7 +8,13 @@ import { describe, it, expect, vi } from "vitest";
 import React, { type ReactNode } from "react";
 import { renderHook, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
-import { useRouteParams, useNavigateTo, useResolvedPath } from "../hooks";
+import {
+  useRouteParams,
+  useNavigateTo,
+  useResolvedPath,
+  useActivePath,
+  useTypedSearchParams,
+} from "../hooks";
 import { defineRoutes } from "../core/defineRoutes";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -18,7 +24,10 @@ import { defineRoutes } from "../core/defineRoutes";
  * v7 made these the defaults and dropped the `future` prop from its types, so
  * it is injected via a spread — consumed by v6, inert on v7.
  */
-const routerFuture = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
+const routerFuture = {
+  v7_startTransition: true,
+  v7_relativeSplatPath: true,
+} as const;
 
 function Router({
   children,
@@ -62,10 +71,9 @@ describe("useRouteParams", () => {
       </Router>
     );
 
-    const { result } = renderHook(
-      () => useRouteParams<"/users/:id">(),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useRouteParams<"/users/:id">(), {
+      wrapper,
+    });
 
     expect(result.current.id).toBe("42");
   });
@@ -92,10 +100,9 @@ describe("useRouteParams", () => {
   });
 
   it("returns an empty object when there are no params", () => {
-    const { result } = renderHook(
-      () => useRouteParams<"/users">(),
-      { wrapper: routerWrapper(["/users"], "/users") },
-    );
+    const { result } = renderHook(() => useRouteParams<"/users">(), {
+      wrapper: routerWrapper(["/users"], "/users"),
+    });
 
     expect(result.current).toEqual({});
   });
@@ -120,7 +127,7 @@ describe("useRouteParams", () => {
     expect(result.current.id).toBe("42");
 
     // Type-level: params are inferred precisely from the route's paramNames
-    const id: "id" = result.current.id;
+    const id = result.current.id;
     expect(id).toBe("42");
   });
 });
@@ -189,7 +196,11 @@ describe("useResolvedPath", () => {
 
   it("resolves a multi-param path", () => {
     const { result } = renderHook(
-      () => useResolvedPath("/posts/:postId/comments/:commentId", { postId: 3, commentId: 17 }),
+      () =>
+        useResolvedPath("/posts/:postId/comments/:commentId", {
+          postId: 3,
+          commentId: 17,
+        }),
       { wrapper: routerWrapper() },
     );
 
@@ -225,7 +236,10 @@ describe("useResolvedPath", () => {
 
   it("keeps splat values raw when { encode: false }", () => {
     const { result } = renderHook(
-      () => useResolvedPath("/files/*", { "*": "a b/c" }, undefined, { encode: false }),
+      () =>
+        useResolvedPath("/files/*", { "*": "a b/c" }, undefined, {
+          encode: false,
+        }),
       { wrapper: routerWrapper() },
     );
 
@@ -233,17 +247,21 @@ describe("useResolvedPath", () => {
   });
 
   it("drops the splat suffix when no splat value is given", () => {
-    const { result } = renderHook(
-      () => useResolvedPath("/files/*", {}),
-      { wrapper: routerWrapper() },
-    );
+    const { result } = renderHook(() => useResolvedPath("/files/*", {}), {
+      wrapper: routerWrapper(),
+    });
 
     expect(result.current).toBe("/files");
   });
 
   it("appends a query string when provided", () => {
     const { result } = renderHook(
-      () => useResolvedPath("/users/:id", { id: 5 }, { tab: "info", active: "true" }),
+      () =>
+        useResolvedPath(
+          "/users/:id",
+          { id: 5 },
+          { tab: "info", active: "true" },
+        ),
       { wrapper: routerWrapper() },
     );
 
@@ -264,10 +282,9 @@ describe("useResolvedPath", () => {
   it("warns (not throws) when a param is missing in default mode", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const { result } = renderHook(
-      () => useResolvedPath("/users/:id", {}),
-      { wrapper: routerWrapper() },
-    );
+    const { result } = renderHook(() => useResolvedPath("/users/:id", {}), {
+      wrapper: routerWrapper(),
+    });
 
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining("Unresolved params"),
@@ -280,7 +297,9 @@ describe("useResolvedPath", () => {
   it("throws a RangeError when strict:true and a param is missing", () => {
     // renderHook catches errors — we need to suppress the console.error React
     // prints for uncaught render errors, then check what was thrown.
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     expect(() => {
       renderHook(
@@ -293,7 +312,9 @@ describe("useResolvedPath", () => {
   });
 
   it("strict mode error message includes the missing param name", () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     expect(() => {
       renderHook(
@@ -307,7 +328,8 @@ describe("useResolvedPath", () => {
 
   it("does not throw in strict mode when all params are supplied", () => {
     const { result } = renderHook(
-      () => useResolvedPath("/users/:id", { id: 1 }, undefined, { strict: true }),
+      () =>
+        useResolvedPath("/users/:id", { id: 1 }, undefined, { strict: true }),
       { wrapper: routerWrapper() },
     );
 
@@ -341,7 +363,10 @@ describe("useResolvedPath", () => {
 
   it("resolves a path with a hash fragment", () => {
     const { result } = renderHook(
-      () => useResolvedPath("/users/:id", { id: 42 }, undefined, { hash: "profile" }),
+      () =>
+        useResolvedPath("/users/:id", { id: 42 }, undefined, {
+          hash: "profile",
+        }),
       { wrapper: routerWrapper() },
     );
 
@@ -350,7 +375,13 @@ describe("useResolvedPath", () => {
 
   it("resolves a path with query string and hash fragment", () => {
     const { result } = renderHook(
-      () => useResolvedPath("/users/:id", { id: 5 }, { tab: "info" }, { hash: "details" }),
+      () =>
+        useResolvedPath(
+          "/users/:id",
+          { id: 5 },
+          { tab: "info" },
+          { hash: "details" },
+        ),
       { wrapper: routerWrapper() },
     );
 
@@ -364,5 +395,70 @@ describe("useResolvedPath", () => {
     );
 
     expect(result.current).toBe("/static#top");
+  });
+});
+
+// ─── useActivePath ───────────────────────────────────────────────────────────
+
+describe("useActivePath", () => {
+  it("returns true when current location matches exact route", () => {
+    const { result } = renderHook(() => useActivePath("/users/42"), {
+      wrapper: routerWrapper(["/users/42"], "/users/*"),
+    });
+
+    expect(result.current).toBe(true);
+  });
+
+  it("returns false when location does not match", () => {
+    const { result } = renderHook(() => useActivePath("/users/42"), {
+      wrapper: routerWrapper(["/posts"], "/*"),
+    });
+
+    expect(result.current).toBe(false);
+  });
+
+  it("supports exact: false for prefix matching", () => {
+    const { result } = renderHook(
+      () => useActivePath("/users", { exact: false }),
+      { wrapper: routerWrapper(["/users/42/details"], "/*") },
+    );
+
+    expect(result.current).toBe(true);
+  });
+});
+
+// ─── useTypedSearchParams ───────────────────────────────────────────────────
+
+describe("useTypedSearchParams", () => {
+  it("parses query params and supports coerceNumbers and coerceBooleans", () => {
+    const { result } = renderHook(
+      () => useTypedSearchParams({ coerceBooleans: true, coerceNumbers: true }),
+      {
+        wrapper: routerWrapper(
+          ["/search?page=2&active=true&query=react"],
+          "/*",
+        ),
+      },
+    );
+
+    const [query] = result.current;
+    expect(query.page).toBe(2);
+    expect(query.active).toBe(true);
+    expect(query.query).toBe("react");
+  });
+
+  it("updates search params via setQuery", () => {
+    const { result } = renderHook(() => useTypedSearchParams(), {
+      wrapper: routerWrapper(["/search"], "/*"),
+    });
+
+    act(() => {
+      const [, setQuery] = result.current;
+      setQuery({ page: 3, filter: "active" });
+    });
+
+    const [query] = result.current;
+    expect(query.page).toBe("3");
+    expect(query.filter).toBe("active");
   });
 });
