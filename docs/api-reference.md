@@ -17,25 +17,25 @@ Nesting is unlimited — organize routes into as many groups and sub-groups as y
 const PATHS = defineRoutes({
   SERVICES: {
     ROOT: "/services",
-    BENEFICIARY_CARE_CENTER: {
-      DETAILS: "/services/beneficiary-care-center/:id",
-      EDIT: "/services/beneficiary-care-center/edit/:id",
+    SUPPORT_CENTER: {
+      DETAILS: "/services/support-center/:id",
+      EDIT: "/services/support-center/edit/:id",
     },
   },
 } as const);
 
 PATHS.SERVICES.ROOT; // '/services'
-PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.build({ id: 7 });
-// → '/services/beneficiary-care-center/edit/7'
+PATHS.SERVICES.SUPPORT_CENTER.EDIT.build({ id: 7 });
+// → '/services/support-center/edit/7'
 
-PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.build(
+PATHS.SERVICES.SUPPORT_CENTER.EDIT.build(
   { id: 7 },
   { tab: "info" },
   { hash: "details" },
 );
-// → '/services/beneficiary-care-center/edit/7?tab=info#details'
+// → '/services/support-center/edit/7?tab=info#details'
 
-PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.paramNames; // ['id']
+PATHS.SERVICES.SUPPORT_CENTER.EDIT.paramNames; // ['id']
 ```
 
 > Always pass `as const` to `defineRoutes()` — it preserves the literal string types that power `.build()`'s compile-time param checking.

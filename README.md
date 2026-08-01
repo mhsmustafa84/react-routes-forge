@@ -83,7 +83,7 @@ You get:
 - **Single source of truth** — no duplicate template/builder pairs to keep in sync
 - **Compile-time param safety** — `.build()` is typed from the path string itself; missing or misspelled params are TypeScript errors
 - **Query string support** — built into `.build()`, no manual `URLSearchParams` wrangling
-- **Zero runtime dependencies** for the core API — React Router is an optional peer dependency, only required if you use the hooks
+- **Zero runtime dependencies** for the core API
 - **Deep nesting supported out of the box** — organize routes into as many nested groups as your app needs
 
 ---
@@ -98,18 +98,6 @@ pnpm add react-routes-forge
 yarn add react-routes-forge
 # or
 bun add react-routes-forge
-```
-
-React Router is an **optional** peer dependency — only needed if you use the bundled hooks (`useRouteParams`, `useNavigateTo`, `useResolvedPath`).
-
-```bash
-npm install react-router-dom   # only if you're using the hooks
-# or
-pnpm add react-router-dom
-# or
-yarn add react-router-dom
-# or
-bun add react-router-dom
 ```
 
 > **Note:** this package ships ESM-only. See [Known behaviours & gotchas](#known-behaviours--gotchas) for details.
@@ -230,21 +218,21 @@ Nesting is unlimited — organize routes into as many groups and sub-groups as y
 const PATHS = defineRoutes({
   SERVICES: {
     ROOT: "/services",
-    BENEFICIARY_CARE_CENTER: {
-      DETAILS: "/services/beneficiary-care-center/:id",
-      EDIT: "/services/beneficiary-care-center/edit/:id",
+    SUPPORT_CENTER: {
+      DETAILS: "/services/support-center/:id",
+      EDIT: "/services/support-center/edit/:id",
     },
   },
 } as const);
 
 PATHS.SERVICES.ROOT; // '/services'
-PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.build({ id: 7 }); // '/services/beneficiary-care-center/edit/7'
-PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.build(
+PATHS.SERVICES.SUPPORT_CENTER.EDIT.build({ id: 7 }); // '/services/support-center/edit/7'
+PATHS.SERVICES.SUPPORT_CENTER.EDIT.build(
   { id: 7 },
   { tab: "info" },
   { hash: "details" },
-); // → '/services/beneficiary-care-center/edit/7?tab=info#details'
-PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.paramNames; // ['id']
+); // → '/services/support-center/edit/7?tab=info#details'
+PATHS.SERVICES.SUPPORT_CENTER.EDIT.paramNames; // ['id']
 ```
 
 > Always pass `as const` to `defineRoutes()` — it preserves the literal string types that power `.build()`'s compile-time param checking.
