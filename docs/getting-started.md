@@ -12,7 +12,7 @@ yarn add react-routes-forge
 bun add react-routes-forge
 ```
 
-> **Note:** this package ships dual **ESM + CommonJS** builds. See [Known Behaviours](/api-reference#known-behaviours) for details.
+> **Note:** this package ships dual **ESM + CommonJS** builds. See [Known Behaviours](/api/known-behaviours) for details.
 
 ## Define Your Routes
 
@@ -95,6 +95,6 @@ These are warnings, not errors — invalid routes still build, so a broken defin
 
 ## What's Next?
 
-- [API Reference](/api-reference) — explore all exported functions
-- [React Hooks](/hooks) — typed hooks for React Router
+- [API Reference](/api/define-routes) — start with `defineRoutes`
+- [React Hooks](/hooks/use-route-params) — typed hooks for React Router
 - [Query & Hash Support](/query-hash) — attaching query strings and hash fragments

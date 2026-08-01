@@ -24,7 +24,7 @@
   - [`build(template, params, query?, options?)`](#buildtemplate-params-query-options)
   - [`isActivePath(currentPath, template, options?)`](#isactivepathcurrentpath-template-options)
   - [`extractParamsFromPath(template, resolvedPath)`](#extractparamsfrompathtemplate-resolvedpath)
-  - [`matchPath(template)`](#matchpathtemplate)
+  - [`matchPath(template, options?)`](#matchpathtemplate-options)
   - [`joinPaths(...segments)`](#joinpathssegments)
   - [`getParamNames(template)`](#getparamnamestemplate)
   - [`flattenRoutes(routes)`](#flattenroutesroutes)

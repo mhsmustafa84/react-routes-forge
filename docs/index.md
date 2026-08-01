@@ -68,8 +68,8 @@ PATHS.USERS.DETAILS.build({ id: 42 }); // '/users/42' → use when navigating
 ## Quick Links
 
 - [Getting Started](/getting-started) — install and first route definition
-- [API Reference](/api-reference) — full API documentation
-- [React Hooks](/hooks) — typed hooks for React Router integration
+- [API Reference](/api/define-routes) — full API documentation
+- [React Hooks](/hooks/use-route-params) — typed hooks for React Router integration
 - [Query & Hash Support](/query-hash) — query strings and hash fragments
 - [Strict Mode](/strict-mode) — catching missing params at compile time
 - [Migration Guide](/migration) — migrate from manual path patterns
