@@ -30,6 +30,3 @@ export {
   flattenRoutes,
   getBreadcrumbs,
 } from "./core/utils";
-
-// React hooks (tree-shakeable — only bundled if imported)
-export { useRouteParams, useNavigateTo, useResolvedPath } from "./hooks";
