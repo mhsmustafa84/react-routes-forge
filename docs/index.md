@@ -37,6 +37,8 @@ PATHS.USERS.EDIT.build({ id: 42 });     // '/users/edit/42'
 
 It plugs straight into React Router with zero configuration, and the React hooks entry adds typed `useParams`, navigation, active-link matching, and search-param handling — all without dragging `react-router-dom` into the core package.
 
+> 🚀 See it in action in the [live demo (POC)](https://mhsmustafa84.github.io/react-routes-forge-poc).
+
 ## Why react-routes-forge?
 
 Most React apps end up with route definitions like this:
