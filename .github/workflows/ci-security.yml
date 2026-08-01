@@ -16,19 +16,47 @@ permissions:
 
 jobs:
   test:
+    name: Test (node ${{ matrix.node }}, rr ${{ matrix.rr }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["18", "20", "22", "24"]
+        rr: ["6", "7"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: ${{ matrix.node }}
           check-latest: true
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
       - run: bun install
+      - name: Install React Router v${{ matrix.rr }}
+        if: matrix.rr != '6'
+        run: bun add -D react-router-dom@${{ matrix.rr }}
       - run: bun run lint
       - run: bun run test
+      - name: Build
+        if: matrix.node == '24' && matrix.rr == '7'
+        run: bun run build
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run test:coverage
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
 
   eslint:
     name: Run eslint scanning

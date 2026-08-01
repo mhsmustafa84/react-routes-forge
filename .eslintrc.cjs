@@ -22,5 +22,7 @@ module.exports = {
     // TypeScript handles both of these — they produce false positives on TS files.
     "no-undef": "off",
     "no-unused-vars": "off",
+    // TS overloads produce duplicate function declarations.
+    "no-redeclare": "off",
   },
 };
