@@ -13,7 +13,7 @@ Creates a fully typed route object from a nested plain object.
 
 Nesting is unlimited — organize routes into as many groups and sub-groups as your app needs.
 
-> `defineRoutes()` also validates every template in development (no-op in production), warning on missing leading `/`, invalid param names, non-trailing `*`, and duplicate path templates. See [Route validation](/getting-started#route-validation).
+> `defineRoutes()` also validates every template in development (no-op in production), warning on missing leading `/`, non-trailing `*`, and duplicate path templates. See [Route validation](/getting-started#route-validation).
 
 ```ts
 const PATHS = defineRoutes({

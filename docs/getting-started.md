@@ -75,7 +75,7 @@ function MyComponent() {
 
 ## Route Validation
 
-In development, `defineRoutes()` warns via `console.warn` about likely mistakes — a missing leading `/`, invalid param names, non-trailing splats, and duplicate path templates:
+In development, `defineRoutes()` warns via `console.warn` about likely mistakes — a missing leading `/`, non-trailing splats, and duplicate path templates:
 
 ```ts
 defineRoutes({

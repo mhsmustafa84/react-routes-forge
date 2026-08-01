@@ -37,17 +37,44 @@ export type RouteTree = {
 };
 
 /**
+ * Matches a single ASCII word character (`[A-Za-z0-9_]`), mirroring the
+ * runtime param regex used by the path utilities.
+ */
+type IsWordChar<C extends string> = C extends
+  | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j"
+  | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t"
+  | "u" | "v" | "w" | "x" | "y" | "z"
+  | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J"
+  | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T"
+  | "U" | "V" | "W" | "X" | "Y" | "Z"
+  | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+  | "_"
+  ? true
+  : false;
+
+/**
+ * The leading run of word characters in a string, e.g. `"name.json"` → `"name"`
+ * and `"id?"` → `"id"`.
+ */
+type WordRun<S extends string> =
+  S extends `${infer C}${infer Rest}`
+    ? IsWordChar<C> extends true
+      ? `${C}${WordRun<Rest>}`
+      : ""
+    : "";
+
+/** `WordRun` of a segment, mapped to `never` when empty so it never pollutes a param union. */
+type ExtractWord<S extends string> = WordRun<S> extends "" ? never : WordRun<S>;
+
+/**
  * Extracts param names from a path template string.
  * e.g. '/users/:id/posts/:postId' → 'id' | 'postId'
  */
-type StripOptional<S extends string> =
-  S extends `${infer Name}?` ? Name : S;
-
 export type ExtractParams<T extends string> =
-  T extends `${string}:${infer Param}/${infer Rest}`
-    ? StripOptional<Param> | ExtractParams<`/${Rest}`>
-    : T extends `${string}:${infer Param}`
-      ? StripOptional<Param>
+  T extends `${string}:${infer Segment}/${infer Rest}`
+    ? ExtractWord<Segment> | ExtractParams<`/${Rest}`>
+    : T extends `${string}:${infer Segment}`
+      ? ExtractWord<Segment>
       : T extends `${infer Prefix}/*`
         ? "*" | ExtractParams<Prefix>
         : never;

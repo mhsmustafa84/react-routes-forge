@@ -169,7 +169,9 @@ That's the entire API surface you need for most apps. Everything below covers th
 
 `defineRoutes()` walks your route object recursively, leaving static paths untouched and wrapping any path containing a `:param` segment or a trailing `/*` splat so it can carry a builder alongside its template string.
 
-> `defineRoutes()` also validates your templates in development — missing leading `/`, invalid param names, non-trailing `*`, and duplicate path templates all produce a `console.warn`. See [Route validation](#route-validation).
+Param names are `[A-Za-z0-9_]` only (matching React Router), so a static suffix after a param stays literal — `/files/:name.json` builds `{ name: "report" }` → `/files/report.json`, and `:name.json` is **not** treated as a single param name.
+
+> `defineRoutes()` also validates your templates in development — missing leading `/`, non-trailing `*`, and duplicate path templates all produce a `console.warn`. See [Route validation](#route-validation).
 
 ---
 
@@ -651,7 +653,6 @@ Behaviour notes:
 | Problem | Example | Warning |
 | ------- | ------- | ------- |
 | Missing leading `/` | `"users/:id"` | `does not start with "/"` |
-| Invalid param name | `"/users/:user name"` | `invalid param name` |
 | Non-trailing splat | `"/files/*/extra"` | `*` outside a trailing `"/*"` |
 | Duplicate path template | `FOO: "/foo"` and `BAR: "/foo"` | `Duplicate route path "/foo"` (names both keys) |
 

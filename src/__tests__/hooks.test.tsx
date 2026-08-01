@@ -192,6 +192,15 @@ describe("useResolvedPath", () => {
     expect(result.current).toBe("/posts/3/comments/17");
   });
 
+  it("resolves params followed by a static suffix", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/files/:name.json", { name: "report" }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/files/report.json");
+  });
+
   it("resolves a splat path, preserving slashes", () => {
     const { result } = renderHook(
       () => useResolvedPath("/files/*", { "*": "a/b/c" }),

@@ -121,12 +121,10 @@ describe("defineRoutes validation", () => {
     warn.mockRestore();
   });
 
-  it("warns on invalid param names", () => {
+  it("does not warn when a param is followed by a static suffix", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    defineRoutes({ BAD: "/users/:user name" } as const);
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("invalid param name"),
-    );
+    defineRoutes({ FILE: "/files/:name.json" } as const);
+    expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 
@@ -194,6 +192,50 @@ describe("buildPath", () => {
   });
 });
 
+// ─── params with static suffixes ──────────────────────────────────────────────
+
+describe("params with static suffixes", () => {
+  it("isDynamic detects params before a static suffix", () => {
+    expect(isDynamic("/files/:name.json")).toBe(true);
+  });
+
+  it("buildPath resolves params before a static suffix", () => {
+    expect(buildPath("/files/:name.json", { name: "report" })).toBe(
+      "/files/report.json",
+    );
+    expect(buildPath("/users/:id-suffix", { id: 7 })).toBe("/users/7-suffix");
+    expect(buildPath("/files/:name.json", { name: "a b" })).toBe(
+      "/files/a%20b.json",
+    );
+  });
+
+  it("buildPath keeps the suffix literal when the param is missing", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(buildPath("/files/:name.json", {})).toBe("/files/:name.json");
+    warn.mockRestore();
+  });
+
+  it("defineRoutes .build() resolves params before a static suffix", () => {
+    const PATHS = defineRoutes({ FILE: "/files/:name.json" } as const);
+    expect(PATHS.FILE.build({ name: "report" })).toBe("/files/report.json");
+    expect(String(PATHS.FILE)).toBe("/files/:name.json");
+    expect((PATHS.FILE as any).paramNames).toEqual(["name"]);
+  });
+
+  it("matchPath treats the suffix as a literal", () => {
+    const re = matchPath("/files/:name.json");
+    expect(re.test("/files/report.json")).toBe(true);
+    expect(re.test("/files/report.yaml")).toBe(false);
+    expect(re.test("/files/report.json/extra")).toBe(false);
+  });
+
+  it("extractParamsFromPath resolves params before a static suffix", () => {
+    expect(
+      extractParamsFromPath("/files/:name.json", "/files/report.json"),
+    ).toEqual({ name: "report" });
+  });
+});
+
 // ─── extractParamNames ───────────────────────────────────────────────────────
 
 describe("extractParamNames", () => {
@@ -214,6 +256,12 @@ describe("extractParamNames", () => {
 
   it("ignores literal colons inside a segment", () => {
     expect(extractParamNames("/users/foo:bar")).toEqual([]);
+  });
+
+  it("stops at a static suffix after the param name", () => {
+    expect(extractParamNames("/files/:name.json")).toEqual(["name"]);
+    expect(extractParamNames("/users/:id-suffix")).toEqual(["id"]);
+    expect(extractParamNames("/users/:id2")).toEqual(["id2"]);
   });
 });
 
@@ -282,6 +330,11 @@ describe("isActivePath", () => {
     expect(isActivePath("/users/edit/42/", "/users/:id", { exact: false })).toBe(
       true,
     );
+  });
+
+  it("tolerates a trailing slash on the template", () => {
+    expect(isActivePath("/users", "/users/")).toBe(true);
+    expect(isActivePath("/users/", "/users/")).toBe(true);
   });
 
   it("treats the root template as a prefix of every path when exact is false", () => {
@@ -647,6 +700,13 @@ describe("optional param segments (:param?)", () => {
 
   it("extractParamsFromPath handles optional param syntax", () => {
     expect(extractParamsFromPath("/users/:id?", "/users/42")).toEqual({ id: "42" });
+  });
+
+  it("extractParamsFromPath omits missing optional params", () => {
+    expect(extractParamsFromPath("/users/:id?", "/users")).toEqual({});
+    expect(
+      extractParamsFromPath("/users/:id?/posts/:postId", "/users/posts/1"),
+    ).toEqual({ postId: "1" });
   });
 });
 

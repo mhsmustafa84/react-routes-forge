@@ -39,8 +39,6 @@ type ResolvedRoutes<T extends RouteInput> = {
 const isRouteGroup = (value: unknown): value is RouteInput =>
   typeof value === "object" && value !== null;
 
-const PARAM_NAME_RE = /^[A-Za-z0-9_]+$/;
-
 /** Emits a console.warn in non-production environments. */
 function devWarn(message: string): void {
   const runtimeProcess = (
@@ -56,23 +54,13 @@ function devWarn(message: string): void {
 
 /**
  * Validate a single route template and warn (dev-only) about common mistakes:
- * missing leading `/`, invalid param names, and non-trailing `*` splats.
+ * missing leading `/` and non-trailing `*` splats.
  */
 function validateTemplate(template: string, key: string): void {
   if (!template.startsWith("/")) {
     devWarn(
       `[route-forge] Route "${key}" does not start with "/": "${template}".`,
     );
-  }
-
-  for (const name of extractParamNames(template)) {
-    if (name === "*") continue;
-    if (!PARAM_NAME_RE.test(name)) {
-      devWarn(
-        `[route-forge] Route "${key}" has an invalid param name ":${name}" in "${template}". ` +
-          `Param names may only contain letters, digits and underscores.`,
-      );
-    }
   }
 
   if (template.includes("*") && !template.endsWith("/*")) {

@@ -8,11 +8,13 @@ const ESCAPE_RE = () => /[.*+?^${}()|[\]\\]/g;
  *
  * A param is only recognized when its `:` sits at the very start of the
  * template or is immediately preceded by `/`, so a literal colon inside a
- * segment (e.g. `/users/foo:bar`) is not treated as a param. The optional `?`
+ * segment (e.g. `/users/foo:bar`) is not treated as a param. Param names are
+ * restricted to `[A-Za-z0-9_]` (matching React Router), so any static suffix
+ * (e.g. `.json` in `/files/:name.json`) stays a literal. The optional `?`
  * marker (`:param?`) is captured separately so it can be handled as a
  * whole-segment modifier.
  */
-const PARAM_SEGMENT_RE = () => /(^|\/):([^/]+?)(\?)?(?=\/|$)/g;
+const PARAM_SEGMENT_RE = () => /(^|\/):([A-Za-z0-9_]+)(\?)?/g;
 
 function escapeRegex(value: string): string {
   return value.replace(ESCAPE_RE(), "\\$&");
@@ -53,7 +55,7 @@ function createTemplatePattern(template: string): string {
 
 /** Returns `true` when `name` is an optional (`:name?`) param in `template`. */
 function isOptionalParam(template: string, name: string): boolean {
-  return new RegExp(`:${escapeRegex(name)}\\?(?=/|$)`).test(template);
+  return new RegExp(`:${escapeRegex(name)}\\?(?![A-Za-z0-9_])`).test(template);
 }
 
 /**
@@ -196,7 +198,10 @@ export function buildPath(
       return path.replace(/\/\*$/, `/${encoded}`);
     }
 
-    const re = new RegExp(`(^|/):${escapeRegex(name)}\\??(?=/|$)`, "g");
+    const re = new RegExp(
+      `(^|/):${escapeRegex(name)}\\??(?![A-Za-z0-9_])`,
+      "g",
+    );
 
     return path.replace(re, (match, boundary) => {
       if (missing) {
@@ -269,7 +274,10 @@ export function isActivePath(
   },
 ): boolean {
   const pathname = (currentPath.split("?")[0] ?? "").replace(/\/+$/, "") || "/";
-  const target = options.caseSensitive ? template : template.toLowerCase();
+  const normalizedTemplate = template.replace(/\/+$/, "") || "/";
+  const target = options.caseSensitive
+    ? normalizedTemplate
+    : normalizedTemplate.toLowerCase();
   const candidate = options.caseSensitive ? pathname : pathname.toLowerCase();
   const regex = options.exact ? matchPath(target) : matchPrefix(target);
 
@@ -286,12 +294,12 @@ export function extractParamsFromPath(
 
   if (!match) return {};
 
-  return Object.fromEntries(
-    paramNames.map((name, index) => [
-      name,
-      safeDecode(match[index + 1] ?? ""),
-    ]),
-  );
+  const result: Record<string, string> = {};
+  paramNames.forEach((name, index) => {
+    const raw = match[index + 1];
+    if (raw !== undefined) result[name] = safeDecode(raw);
+  });
+  return result;
 }
 
 export function joinPaths(...segments: string[]): string {

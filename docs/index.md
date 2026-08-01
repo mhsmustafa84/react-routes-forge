@@ -49,7 +49,7 @@ PATHS.USERS.DETAILS.build({ id: 42 }); // '/users/42' → use when navigating
 - **Query string support** — built into `.build()`, no manual `URLSearchParams` wrangling
 - **Hash fragment support** — append `#hash` via the options bag
 - **Splat (`*`) segments** — supported across the entire core API, not just the hooks
-- **Route validation** — development-time warnings for missing `/`, invalid params, and duplicate paths
+- **Route validation** — development-time warnings for missing `/`, non-trailing splats, and duplicate paths
 - **Zero runtime dependencies** for the core API — React Router is an optional peer dependency
 - **Deep nesting** — organize routes into as many nested groups as your app needs
 - **Breadcrumbs** — automatic breadcrumb generation from your route tree, with per-route label overrides
