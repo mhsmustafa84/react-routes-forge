@@ -8,7 +8,7 @@
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-POC-brightgreen.svg)](https://mhsmustafa84.github.io/react-routes-forge-poc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](#)
-[![Node.js 24+](https://img.shields.io/badge/Node.js-24+-green.svg)](#requirements)
+[![Node.js 18+](https://img.shields.io/badge/Node.js-18+-green.svg)](#requirements)
 [![Combined CI/CD](https://github.com/mhsmustafa84/react-routes-forge/actions/workflows/ci-security.yml/badge.svg)](https://github.com/mhsmustafa84/react-routes-forge/actions/workflows/ci-security.yml)
 
 ---
@@ -264,6 +264,17 @@ build("/page", {}, undefined, { hash: "section" });
 // → '/page#section'
 ```
 
+**Param values are URL-encoded by default** (`encodeURIComponent`), so characters like `/`, `?`, `#`, or `%` in a value can't break the URL structure:
+
+```ts
+build("/search/:query", { query: "a/b" });
+// → '/search/a%2Fb'
+
+// Pass { encode: false } if a value is already encoded
+build("/search/:query", { query: "a%2Fb" }, undefined, { encode: false });
+// → '/search/a%2Fb'
+```
+
 ---
 
 ### `isActivePath(currentPath, template, options?)`
@@ -459,14 +470,14 @@ getBreadcrumbs(flat, "/users/edit/42"); // same result as passing the tree
 
 ## React hooks
 
-Import these only if you're using React Router — they're tree-shakeable and won't be bundled unless imported.
+Import these only if you're using React Router — they live in a separate `react-routes-forge/hooks` entry, so the core package never pulls in `react-router-dom`.
 
 ### `useRouteParams<T>()`
 
 Typed wrapper around React Router's `useParams`. Pass the route's template string as a generic to get a correctly typed params object back — no casting, and it works for any number of `:param` segments.
 
 ```tsx
-import { useRouteParams } from "react-routes-forge";
+import { useRouteParams } from "react-routes-forge/hooks";
 
 // Route: '/users/edit/:id'
 function EditUser() {
@@ -490,7 +501,7 @@ function Comment() {
 Thin, typed wrapper around `useNavigate()` that accepts a resolved path (the output of `.build()`) along with the usual navigation options.
 
 ```tsx
-import { useNavigateTo } from "react-routes-forge";
+import { useNavigateTo } from "react-routes-forge/hooks";
 import { PATHS } from "./paths";
 
 function Component() {
@@ -514,7 +525,7 @@ navigateTo(PATHS.USERS.ROOT, { state: { from: "settings" } });
 Resolves a path template to a concrete URL string without navigating — useful for `<Link to={...} />`, preloading, or building a URL for something other than `navigate()`. Backed by React Router's `generatePath`, so it correctly supports splat (`*`) and optional (`:param?`) segments. Accepts the same `query` and `options` as [`build()`](#buildtemplate-params-query-options).
 
 ```tsx
-import { useResolvedPath } from "react-routes-forge";
+import { useResolvedPath } from "react-routes-forge/hooks";
 
 const path = useResolvedPath("/users/:id", { id: 42 });
 // → '/users/42'
@@ -692,7 +703,7 @@ Prefer template literals or explicit `String()` coercion when comparing dynamic 
 
 ### `useResolvedPath` vs. the library's own `buildPath`
 
-`useResolvedPath` delegates to React Router's `generatePath` when all params are present, which correctly handles splat (`*`) and optional (`:param?`) segments that the library's own regex-based substitution does not. If params are missing, it falls back to the same `buildPath`/strict-mode behaviour described above — so failure modes stay consistent, but full splat/optional support is only guaranteed via the hook, not via `.build()`.
+`useResolvedPath` delegates to React Router's `generatePath` when all params are present, which correctly handles splat (`*`) segments. The library's own `buildPath`/`.build()` handles optional (`:param?`) segments identically — the segment is dropped when the param is missing. If params are missing, the hook falls back to the same `buildPath`/strict-mode behaviour described above, so failure modes stay consistent. Splat (`*`) support is only guaranteed via the hook, not via `.build()`.
 
 ### ESM-only package
 
@@ -735,7 +746,7 @@ If you're contributing, new behaviour should come with a matching test — the e
 ## Requirements
 
 - **React** ≥ 17 (peer dependency)
-- **react-router-dom** ≥ 6 (optional peer dependency — required only for the bundled hooks)
+- **react-router-dom** ≥ 6 (optional peer dependency — required only for the `react-routes-forge/hooks` entry)
 - **Node.js** ≥ 18
 - **TypeScript** ≥ 5 recommended for full type inference (the package works with plain JavaScript too, just without compile-time param checking)
 

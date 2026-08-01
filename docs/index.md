@@ -51,7 +51,7 @@ PATHS.USERS.DETAILS.build({ id: 42 }); // '/users/42' → use when navigating
 - **Zero runtime dependencies** for the core API — React Router is an optional peer dependency
 - **Deep nesting** — organize routes into as many nested groups as your app needs
 - **Breadcrumbs** — automatic breadcrumb generation from your route tree
-- **Tree-shakeable hooks** — React hooks are only bundled when imported
+- **Separate hooks entry** — React hooks are published under `react-routes-forge/hooks`, so the core package never pulls in `react-router-dom`
 
 ## Route Types
 

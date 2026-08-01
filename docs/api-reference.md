@@ -65,6 +65,14 @@ build("/users/:id", {}, undefined, { strict: true });
 // Hash fragment — appended after the query string
 build("/users/:id", { id: 42 }, { tab: "info" }, { hash: "details" });
 // → '/users/42?tab=info#details'
+
+// Param values are URL-encoded by default
+build("/search/:query", { query: "a/b" });
+// → '/search/a%2Fb'
+
+// Pass { encode: false } if a value is already encoded
+build("/search/:query", { query: "a%2Fb" }, undefined, { encode: false });
+// → '/search/a%2Fb'
 ```
 
 ---

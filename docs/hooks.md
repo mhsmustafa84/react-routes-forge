@@ -1,6 +1,6 @@
 # React Hooks
 
-These hooks are tree-shakeable and only bundled when imported. They require `react-router-dom` as a peer dependency.
+These hooks live in a separate `react-routes-forge/hooks` entry, so the core package never pulls in `react-router-dom`. They require `react-router-dom` as a peer dependency.
 
 ## useRouteParams
 
@@ -9,7 +9,7 @@ These hooks are tree-shakeable and only bundled when imported. They require `rea
 Typed wrapper around React Router's `useParams`. Pass the route's template string as a generic to get a correctly typed params object back.
 
 ```tsx
-import { useRouteParams } from "react-routes-forge";
+import { useRouteParams } from "react-routes-forge/hooks";
 
 // Route: '/users/edit/:id'
 function EditUser() {
@@ -32,7 +32,7 @@ function Comment() {
 Thin, typed wrapper around `useNavigate()` that accepts a resolved path (the output of `.build()`) along with the usual navigation options.
 
 ```tsx
-import { useNavigateTo } from "react-routes-forge";
+import { useNavigateTo } from "react-routes-forge/hooks";
 import { PATHS } from "./paths";
 
 function Component() {
@@ -56,7 +56,7 @@ navigateTo(PATHS.USERS.ROOT, { state: { from: "settings" } });
 Resolves a path template to a concrete URL string without navigating — useful for `<Link to={...} />`, preloading, or building a URL for something other than `navigate()`. Backed by React Router's `generatePath`, so it correctly supports splat (`*`) and optional (`:param?`) segments.
 
 ```tsx
-import { useResolvedPath } from "react-routes-forge";
+import { useResolvedPath } from "react-routes-forge/hooks";
 
 const path = useResolvedPath("/users/:id", { id: 42 });
 // → '/users/42'
@@ -74,4 +74,4 @@ const path = useResolvedPath("/page", {}, undefined, { hash: "section" });
 
 ### useResolvedPath vs buildPath
 
-`useResolvedPath` delegates to React Router's `generatePath` when all params are present, which correctly handles splat (`*`) and optional (`:param?`) segments that the library's own regex-based substitution does not. If params are missing, it falls back to the same `buildPath`/strict-mode behaviour — so failure modes stay consistent.
+`useResolvedPath` delegates to React Router's `generatePath` when all params are present, which correctly handles splat (`*`) segments. The library's own `buildPath`/`.build()` handles optional (`:param?`) segments identically — the segment is dropped when the param is missing. If params are missing, the hook falls back to the same `buildPath`/strict-mode behaviour — so failure modes stay consistent.
