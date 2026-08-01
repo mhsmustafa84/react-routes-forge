@@ -1,6 +1,6 @@
 {
   "name": "react-routes-forge",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Type-safe route definitions, automatic path builders, query parameter handling, and active route matching for React applications with zero duplication.",
   "type": "module",
   "author": {
