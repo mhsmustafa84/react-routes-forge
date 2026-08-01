@@ -13,6 +13,11 @@ export default defineConfig({
       { text: "Home", link: "/" },
       { text: "Getting Started", link: "/getting-started" },
       { text: "API Reference", link: "/api/define-routes" },
+      {
+        text: "npm",
+        link: "https://www.npmjs.com/package/react-routes-forge",
+        target: "_blank",
+      },
     ],
 
     sidebar: [
