@@ -646,6 +646,98 @@ describe("build() strict mode", () => {
   });
 });
 
+// ─── splat (*) segments ──────────────────────────────────────────────────────
+
+describe("splat (*) segments", () => {
+  it("extracts the splat param as *", () => {
+    expect(extractParamNames("/files/*")).toEqual(["*"]);
+  });
+
+  it("extracts named params followed by a splat", () => {
+    expect(extractParamNames("/users/:id/files/*")).toEqual(["id", "*"]);
+  });
+
+  it("isDynamic returns true for splat paths", () => {
+    expect(isDynamic("/files/*")).toBe(true);
+    expect(isDynamic("/*")).toBe(true);
+  });
+
+  it("buildPath resolves a splat value, preserving slashes", () => {
+    expect(buildPath("/files/*", { "*": "a/b/c" })).toBe("/files/a/b/c");
+  });
+
+  it("buildPath encodes special characters in splat segments but not slashes", () => {
+    expect(buildPath("/files/*", { "*": "a b/c?d" })).toBe("/files/a%20b/c%3Fd");
+  });
+
+  it("buildPath keeps splat values raw when { encode: false }", () => {
+    expect(
+      buildPath("/files/*", { "*": "a b/c" }, undefined, { encode: false }),
+    ).toBe("/files/a b/c");
+  });
+
+  it("buildPath drops the splat suffix when no value is given", () => {
+    expect(buildPath("/files/*", {})).toBe("/files");
+    expect(buildPath("/*", {})).toBe("/");
+  });
+
+  it("does not warn or throw in strict mode when the splat is missing", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(buildPath("/files/*", {}, undefined, { strict: true })).toBe("/files");
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("matchPath matches splat paths and captures the remainder", () => {
+    const re = matchPath("/files/*");
+    expect(re.test("/files/a/b")).toBe(true);
+    expect(re.test("/files")).toBe(true);
+    expect(re.exec("/files/a/b")![1]).toBe("a/b");
+  });
+
+  it("matchPath on a bare splat matches everything", () => {
+    const re = matchPath("/*");
+    expect(re.test("/")).toBe(true);
+    expect(re.test("/anything/here")).toBe(true);
+    expect(re.exec("/anything/here")![1]).toBe("anything/here");
+  });
+
+  it("isActivePath matches splat paths", () => {
+    expect(isActivePath("/files/a/b", "/files/*")).toBe(true);
+    expect(isActivePath("/files", "/files/*")).toBe(true);
+    expect(isActivePath("/other", "/files/*")).toBe(false);
+  });
+
+  it("extractParamsFromPath returns the splat remainder", () => {
+    expect(extractParamsFromPath("/files/*", "/files/a/b/c")).toEqual({
+      "*": "a/b/c",
+    });
+  });
+
+  it("works with splat paths in defineRoutes", () => {
+    const PATHS = defineRoutes({
+      FILES: "/files/*",
+      USERS: "/users/:id/files/*",
+    } as const);
+
+    expect(PATHS.FILES.build({ "*": "x/y" })).toBe("/files/x/y");
+    expect(PATHS.USERS.build({ id: 7, "*": "a/b" })).toBe("/users/7/files/a/b");
+    expect(String(PATHS.FILES)).toBe("/files/*");
+    expect((PATHS.FILES as any).paramNames).toEqual(["*"]);
+    expect((PATHS.USERS as any).paramNames).toEqual(["id", "*"]);
+  });
+
+  it("types splat params at compile time", () => {
+    const PATHS = defineRoutes({
+      FILES: "/files/*",
+    } as const);
+
+    PATHS.FILES.build({ "*": "a/b" });
+    // @ts-expect-error - build() requires the "*" splat param
+    PATHS.FILES.build({});
+  });
+});
+
 // ─── getBreadcrumbs ───────────────────────────────────────────────────────────
 
 describe("getBreadcrumbs", () => {

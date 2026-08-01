@@ -40,7 +40,9 @@ export type ExtractParams<T extends string> =
     ? StripOptional<Param> | ExtractParams<`/${Rest}`>
     : T extends `${string}:${infer Param}`
       ? StripOptional<Param>
-      : never;
+      : T extends `${infer Prefix}/*`
+        ? "*" | ExtractParams<Prefix>
+        : never;
 
 /**
  * Builds a params object type from a path template.

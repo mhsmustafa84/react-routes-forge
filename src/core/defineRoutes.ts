@@ -14,12 +14,19 @@ type RouteInput = {
   [key: string]: string | RouteInput;
 };
 
-type DynamicRoute<T extends string> = T extends `${string}:${string}`
-  ? T & {
-      build(params: PathParams<T>, query?: QueryParams, options?: BuildPathOptions): RoutePath;
-      paramNames: Array<ExtractParams<T>>;
-    }
-  : T;
+/**
+ * A dynamic route is a template string with a `:param` or trailing `/*` splat,
+ * augmented with a `.build()` helper and a `.paramNames` array.
+ *
+ * Exported so consumers (e.g. the hooks entry) can type against it.
+ */
+export type DynamicRoute<T extends string> =
+  T extends `${string}:${string}` | `${string}/*`
+    ? T & {
+        build(params: PathParams<T>, query?: QueryParams, options?: BuildPathOptions): RoutePath;
+        paramNames: Array<ExtractParams<T>>;
+      }
+    : T;
 
 type ResolvedRoutes<T extends RouteInput> = {
   [K in keyof T]: T[K] extends RouteInput

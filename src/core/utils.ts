@@ -24,17 +24,21 @@ function escapeRegex(value: string): string {
  * - Required `:name` segments become a capturing group `([^/]+)`.
  * - Optional `:name?` segments become `(?:([^/]+))?` — the whole segment is
  *   optional, matching React Router semantics.
+ * - A trailing splat (`/*`) becomes `(?:/(.*))?`, capturing the remainder of
+ *   the path (including slashes) or nothing at all.
  * - Everything else is regex-escaped literally.
  */
 function createTemplatePattern(template: string): string {
+  const splat = template.endsWith("/*");
+  const base = splat ? template.slice(0, -2) : template;
   let pattern = "";
   let cursor = 0;
 
-  for (const match of template.matchAll(PARAM_SEGMENT_RE())) {
+  for (const match of base.matchAll(PARAM_SEGMENT_RE())) {
     const start = match.index ?? 0;
     const token = match[0];
 
-    pattern += escapeRegex(template.slice(cursor, start));
+    pattern += escapeRegex(base.slice(cursor, start));
 
     const [, boundary = "", , optional] = match;
     pattern += optional
@@ -44,7 +48,7 @@ function createTemplatePattern(template: string): string {
     cursor = start + (token?.length ?? 0);
   }
 
-  return pattern + escapeRegex(template.slice(cursor));
+  return pattern + escapeRegex(base.slice(cursor)) + (splat ? "(?:/(.*))?" : "");
 }
 
 /** Returns `true` when `name` is an optional (`:name?`) param in `template`. */
@@ -111,12 +115,30 @@ export function buildPath(
   const unresolved = paramNames.filter(
     (name) =>
       (params[name] === undefined || params[name] === null) &&
-      !isOptionalParam(template, name),
+      !isOptionalParam(template, name) &&
+      // A missing splat simply drops the `/*` suffix (matching React Router,
+      // where `/files/*` also matches `/files`).
+      name !== "*",
   );
 
   const resolved = paramNames.reduce((path, name) => {
     const value = params[name];
     const missing = value === undefined || value === null;
+
+    if (name === "*") {
+      if (missing) return path.replace(/\/\*$/, "") || "/";
+      // Splat values are path-like: preserve `/` separators but still
+      // encode characters that could break the URL (`?`, `#`, spaces, …).
+      const encoded =
+        options?.encode === false
+          ? String(value)
+          : String(value)
+              .split("/")
+              .map((segment) => encodeURIComponent(segment))
+              .join("/");
+      return path.replace(/\/\*$/, `/${encoded}`);
+    }
+
     const re = new RegExp(`(^|/):${escapeRegex(name)}\\??(?=/|$)`, "g");
 
     return path.replace(re, (match, boundary) => {
@@ -161,13 +183,15 @@ export function buildPath(
 }
 
 export function extractParamNames(template: string): string[] {
-  return [...template.matchAll(PARAM_SEGMENT_RE())].map(
+  const names = [...template.matchAll(PARAM_SEGMENT_RE())].map(
     (match) => match[2] as string,
   );
+  if (template.endsWith("/*")) names.push("*");
+  return names;
 }
 
 export function isDynamic(path: string): boolean {
-  return PARAM_SEGMENT_RE().test(path);
+  return PARAM_SEGMENT_RE().test(path) || path.endsWith("/*");
 }
 
 export function isActivePath(
