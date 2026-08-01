@@ -1,6 +1,6 @@
 # react-routes-forge
 
-**Type-safe route definitions with automatic path builders for React apps.**
+**Type-safe route definitions, automatic path builders, query parameter handling, and active route matching for React applications with zero duplication.**
 
 One source of truth for your routes — templates for `<Route path={...} />` and typed builders for navigation — with no duplication and no manual string concatenation.
 
@@ -27,14 +27,14 @@ import { defineRoutes } from "react-routes-forge";
 
 export const PATHS = defineRoutes({
   USERS: {
-    ROOT: "/users",                 // static   → used directly
-    EDIT: "/users/edit/:id",        // dynamic  → .build() with typed params
+    ROOT: "/users", // static   → used directly
+    EDIT: "/users/edit/:id", // dynamic  → .build() with typed params
   },
 } as const);
 
-PATHS.USERS.ROOT;                       // '/users'
-PATHS.USERS.EDIT;                       // '/users/edit/:id'
-PATHS.USERS.EDIT.build({ id: 42 });     // '/users/edit/42'
+PATHS.USERS.ROOT; // '/users'
+PATHS.USERS.EDIT; // '/users/edit/:id'
+PATHS.USERS.EDIT.build({ id: 42 }); // '/users/edit/42'
 ```
 
 It plugs straight into React Router with zero configuration, and the React hooks entry adds typed `useParams`, navigation, active-link matching, and search-param handling — all without dragging `react-router-dom` into the core package.
@@ -68,9 +68,9 @@ export const PATHS = defineRoutes({
   },
 } as const);
 
-PATHS.USERS.ROOT;                     // '/users'              → static, used directly
-PATHS.USERS.DETAILS;                  // '/users/:id'          → use in <Route path={...} />
-PATHS.USERS.DETAILS.build({ id: 42 });// '/users/42'           → use when navigating
+PATHS.USERS.ROOT; // '/users'              → static, used directly
+PATHS.USERS.DETAILS; // '/users/:id'          → use in <Route path={...} />
+PATHS.USERS.DETAILS.build({ id: 42 }); // '/users/42'           → use when navigating
 ```
 
 ## Quick Tour
@@ -107,7 +107,7 @@ React hooks round out the common router tasks:
 import { useActivePath, useRouteParams } from "react-routes-forge/hooks";
 
 function EditUser() {
-  const { id } = useRouteParams(PATHS.USERS.EDIT);  // typed params, no casting
+  const { id } = useRouteParams(PATHS.USERS.EDIT); // typed params, no casting
   const isActive = useActivePath(PATHS.USERS.EDIT); // nav highlighting
   // ...
 }
@@ -131,11 +131,11 @@ function EditUser() {
 
 ## Route Types
 
-| Route type  | Example                 | Behaves as                              | Gains                                                                 |
-| ----------- | ----------------------- | --------------------------------------- | --------------------------------------------------------------------- |
-| **Static**  | `HOME: '/'`             | String-like (coercible to its template) | `.build(query?, options?)` — attach query/hash, no params to fill      |
-| **Dynamic** | `DETAILS: '/users/:id'` | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`                  |
-| **Splat**   | `FILES: '/files/*'`     | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`                  |
+| Route type  | Example                 | Behaves as                              | Gains                                                             |
+| ----------- | ----------------------- | --------------------------------------- | ----------------------------------------------------------------- |
+| **Static**  | `HOME: '/'`             | String-like (coercible to its template) | `.build(query?, options?)` — attach query/hash, no params to fill |
+| **Dynamic** | `DETAILS: '/users/:id'` | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`              |
+| **Splat**   | `FILES: '/files/*'`     | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`              |
 
 ## Next Steps
 
