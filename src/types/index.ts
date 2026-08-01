@@ -13,7 +13,7 @@ export type RouteBuilder<TParams extends RouteParams = RouteParams> = (
 /**
  * Acceptable param value types for route builders.
  */
-export type RouteParam = string | number;
+export type RouteParam = string | number | boolean;
 export type RouteParams = Record<string, RouteParam>;
 
 /**

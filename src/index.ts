@@ -1,6 +1,6 @@
 // Core
 export { defineRoutes } from "./core/defineRoutes";
-export { buildPath, extractParamNames, isDynamic } from "./core/utils";
+export { appendQuery, buildPath, extractParamNames, extractQueryFromPath, isDynamic } from "./core/utils";
 
 // Types
 export type {
