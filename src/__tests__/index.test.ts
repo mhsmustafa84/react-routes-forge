@@ -111,6 +111,67 @@ describe("defineRoutes", () => {
 });
 
 
+// ─── defineRoutes validation ──────────────────────────────────────────────────
+
+describe("defineRoutes validation", () => {
+  it("warns when a route path does not start with /", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    defineRoutes({ LOGIN: "login" } as const);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("does not start with"));
+    warn.mockRestore();
+  });
+
+  it("warns on invalid param names", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    defineRoutes({ BAD: "/users/:user name" } as const);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("invalid param name"),
+    );
+    warn.mockRestore();
+  });
+
+  it("warns on non-trailing splat usage", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    defineRoutes({ BAD: "/files/*/extra" } as const);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("trailing"));
+    warn.mockRestore();
+  });
+
+  it("warns on duplicate path templates, naming both keys", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    defineRoutes({
+      A: { FOO: "/foo" },
+      B: { FOO: "/foo" },
+    } as const);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Duplicate route path"));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"/foo"'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("A.FOO"));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("B.FOO"));
+    warn.mockRestore();
+  });
+
+  it("does not warn for valid route trees", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    defineRoutes({
+      HOME: "/",
+      USERS: { ROOT: "/users", EDIT: "/users/edit/:id" },
+    } as const);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("suppresses warnings when NODE_ENV is production", () => {
+    const original = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    defineRoutes({ A: "no-slash" } as const);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+    process.env.NODE_ENV = original;
+  });
+});
+
+
 // ─── buildPath ───────────────────────────────────────────────────────────────
 
 describe("buildPath", () => {

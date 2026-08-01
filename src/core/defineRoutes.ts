@@ -1,4 +1,4 @@
-import { buildPath, extractParamNames, isDynamic } from "./utils";
+import { buildPath, extractParamNames, flattenRoutes, isDynamic } from "./utils";
 import type {
   BuildPathOptions,
   ExtractParams,
@@ -39,6 +39,71 @@ type ResolvedRoutes<T extends RouteInput> = {
 const isRouteGroup = (value: unknown): value is RouteInput =>
   typeof value === "object" && value !== null;
 
+const PARAM_NAME_RE = /^[A-Za-z0-9_]+$/;
+
+/** Emits a console.warn in non-production environments. */
+function devWarn(message: string): void {
+  const runtimeProcess = (
+    globalThis as typeof globalThis & {
+      process?: { env?: Record<string, string | undefined> };
+    }
+  ).process;
+
+  if (runtimeProcess?.env?.NODE_ENV !== "production") {
+    console.warn(message);
+  }
+}
+
+/**
+ * Validate a single route template and warn (dev-only) about common mistakes:
+ * missing leading `/`, invalid param names, and non-trailing `*` splats.
+ */
+function validateTemplate(template: string, key: string): void {
+  if (!template.startsWith("/")) {
+    devWarn(
+      `[route-forge] Route "${key}" does not start with "/": "${template}".`,
+    );
+  }
+
+  for (const name of extractParamNames(template)) {
+    if (name === "*") continue;
+    if (!PARAM_NAME_RE.test(name)) {
+      devWarn(
+        `[route-forge] Route "${key}" has an invalid param name ":${name}" in "${template}". ` +
+          `Param names may only contain letters, digits and underscores.`,
+      );
+    }
+  }
+
+  if (template.includes("*") && !template.endsWith("/*")) {
+    devWarn(
+      `[route-forge] Route "${key}" uses "*" outside a trailing "/*" splat; only a trailing splat is supported: "${template}".`,
+    );
+  }
+}
+
+/**
+ * Warn (dev-only) when two routes resolve to the same path template, which
+ * would make one of them unreachable.
+ */
+function detectDuplicatePaths(routes: Record<string, unknown>): void {
+  const seen = new Map<string, string>();
+  const warned = new Set<string>();
+
+  for (const route of flattenRoutes(routes)) {
+    const existing = seen.get(route.path);
+    if (existing === undefined) {
+      seen.set(route.path, route.key);
+    } else if (!warned.has(route.path)) {
+      warned.add(route.path);
+      devWarn(
+        `[route-forge] Duplicate route path "${route.path}" for "${existing}" and "${route.key}". ` +
+          `Only one of them will be reachable.`,
+      );
+    }
+  }
+}
+
 function wrapDynamicPath<T extends string>(template: T): DynamicRoute<T> {
   const paramNames = extractParamNames(template);
   const wrapped = new String(template) as unknown as DynamicRoute<T> & {
@@ -62,6 +127,7 @@ function processRouteMap<T extends RouteInput>(routes: T): ResolvedRoutes<T> {
     const value = routes[key];
 
     if (typeof value === "string") {
+      validateTemplate(value, key);
       result[key] = (
         isDynamic(value) ? wrapDynamicPath(value) : value
       ) as ResolvedRoutes<T>[typeof key];
@@ -78,5 +144,7 @@ function processRouteMap<T extends RouteInput>(routes: T): ResolvedRoutes<T> {
 export function defineRoutes<T extends RouteInput>(
   routes: T,
 ): ResolvedRoutes<T> {
-  return processRouteMap(routes);
+  const result = processRouteMap(routes);
+  detectDuplicatePaths(result as unknown as Record<string, unknown>);
+  return result;
 }
