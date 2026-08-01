@@ -11,6 +11,8 @@ One source of truth for your routes — templates for `<Route path={...} />` and
   <img src="https://img.shields.io/badge/Dual%20ESM%2FCJS-brightgreen.svg" alt="ESM + CommonJS">
 </div>
 
+> 🚀 **Try it live** — see `react-routes-forge` in action: [react-routes-forge POC demo](https://mhsmustafa84.github.io/react-routes-forge-poc)
+
 ## What is react-routes-forge?
 
 `react-routes-forge` is a tiny, dependency-free toolkit that turns a plain route map into a fully typed object of paths and path builders. Each route key serves double duty:
@@ -36,8 +38,6 @@ PATHS.USERS.EDIT.build({ id: 42 });     // '/users/edit/42'
 ```
 
 It plugs straight into React Router with zero configuration, and the React hooks entry adds typed `useParams`, navigation, active-link matching, and search-param handling — all without dragging `react-router-dom` into the core package.
-
-> 🚀 See it in action in the [live demo (POC)](https://mhsmustafa84.github.io/react-routes-forge-poc).
 
 ## Why react-routes-forge?
 
