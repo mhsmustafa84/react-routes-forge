@@ -11,7 +11,6 @@ import type {
   RouteParams,
   BuildPathOptions,
 } from "../types";
-import type { DynamicRoute } from "../core/defineRoutes";
 import { buildPath } from "../core/utils";
 
 // ─── useRouteParams ──────────────────────────────────────────────────────────
@@ -32,17 +31,20 @@ import { buildPath } from "../core/utils";
  * const { id } = useRouteParams(PATHS.USERS.EDIT);
  * ```
  */
+// Overload 1: no-arg generic — caller provides the template literal as T
 export function useRouteParams<T extends string>(): Record<
   ExtractParams<T>,
   string
 >;
+// Overload 2: pass a route from defineRoutes() — T is inferred from paramNames
 export function useRouteParams<T extends string>(
-  route: DynamicRoute<T>,
-): Record<ExtractParams<T>, string>;
+  route: { readonly paramNames: ReadonlyArray<T> | Array<T> },
+): Record<T, string>;
+// Implementation
 export function useRouteParams<T extends string>(
-  _route?: DynamicRoute<T>,
-): Record<ExtractParams<T>, string> {
-  return useParams() as Record<ExtractParams<T>, string>;
+  _route?: { readonly paramNames: ReadonlyArray<T> | Array<T> },
+): Record<T, string> | Record<ExtractParams<T>, string> {
+  return useParams() as Record<T, string>;
 }
 
 // ─── useNavigateTo ──────────────────────────────────────────────────────────

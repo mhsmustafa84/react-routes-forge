@@ -118,6 +118,10 @@ describe("useRouteParams", () => {
     });
 
     expect(result.current.id).toBe("42");
+
+    // Type-level: params are inferred precisely from the route's paramNames
+    const id: "id" = result.current.id;
+    expect(id).toBe("42");
   });
 });
 
