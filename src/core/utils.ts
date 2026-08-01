@@ -194,17 +194,29 @@ export function isDynamic(path: string): boolean {
   return PARAM_SEGMENT_RE().test(path) || path.endsWith("/*");
 }
 
+/**
+ * Test whether `currentPath` matches `template`, mirroring React Router's
+ * `NavLink` matching semantics:
+ *
+ * - Case-insensitive by default (pass `caseSensitive: true` to opt out).
+ * - Trailing slashes are tolerated (`/users/` matches `/users`).
+ * - `exact: true` (the default) requires a full match; `exact: false`
+ *   matches any path that starts with the template.
+ */
 export function isActivePath(
   currentPath: string,
   template: string,
-  options: { exact?: boolean } = { exact: true },
+  options: { exact?: boolean; caseSensitive?: boolean } = {
+    exact: true,
+    caseSensitive: false,
+  },
 ): boolean {
-  const pathWithoutSearch = currentPath.split("?")[0] ?? "";
-  const regex = options.exact
-    ? matchPath(template)
-    : matchPrefix(template);
+  const pathname = (currentPath.split("?")[0] ?? "").replace(/\/+$/, "") || "/";
+  const target = options.caseSensitive ? template : template.toLowerCase();
+  const candidate = options.caseSensitive ? pathname : pathname.toLowerCase();
+  const regex = options.exact ? matchPath(target) : matchPrefix(target);
 
-  return regex.test(pathWithoutSearch);
+  return regex.test(candidate);
 }
 
 export function extractParamsFromPath(

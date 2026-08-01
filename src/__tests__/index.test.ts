@@ -198,6 +198,34 @@ describe("isActivePath", () => {
     );
     expect(isActivePath("/users-edit", "/users", { exact: false })).toBe(false);
   });
+
+  it("is case-insensitive by default (NavLink semantics)", () => {
+    expect(isActivePath("/Users/42", "/users/:id")).toBe(true);
+    expect(isActivePath("/USERS", "/users")).toBe(true);
+  });
+
+  it("respects caseSensitive when enabled", () => {
+    expect(
+      isActivePath("/Users/42", "/users/:id", { caseSensitive: true }),
+    ).toBe(false);
+    expect(
+      isActivePath("/users/42", "/users/:id", { caseSensitive: true }),
+    ).toBe(true);
+  });
+
+  it("tolerates trailing slashes", () => {
+    expect(isActivePath("/users/", "/users")).toBe(true);
+    expect(isActivePath("/users/42/", "/users/:id")).toBe(true);
+    expect(isActivePath("/users/edit/42/", "/users/:id", { exact: false })).toBe(
+      true,
+    );
+  });
+
+  it("treats the root template as a prefix of every path when exact is false", () => {
+    expect(isActivePath("/", "/")).toBe(true);
+    expect(isActivePath("/users", "/")).toBe(false);
+    expect(isActivePath("/users", "/", { exact: false })).toBe(true);
+  });
 });
 
 // ─── extractParamsFromPath ───────────────────────────────────────────────────
