@@ -63,8 +63,18 @@ type WordRun<S extends string> =
       : ""
     : "";
 
-/** `WordRun` of a segment, mapped to `never` when empty so it never pollutes a param union. */
-type ExtractWord<S extends string> = WordRun<S> extends "" ? never : WordRun<S>;
+/**
+ * `WordRun` of a segment, mapped to `never` when empty so it never pollutes a
+ * param union. For non-literal input (e.g. a `DynamicRoute` value whose object
+ * members widen the captured segment to `string`) it falls back to `string`,
+ * keeping param access valid without attempting literal extraction.
+ */
+type ExtractWord<S extends string> =
+  string extends S
+    ? string
+    : WordRun<S> extends ""
+      ? never
+      : WordRun<S>;
 
 /**
  * Extracts param names from a path template string.
