@@ -44,6 +44,15 @@ export function devWarn(message: string): void {
   }
 }
 
+/**
+ * Clears internal regex cache maps (PREFIX_CACHE and PATH_CACHE).
+ * Useful in test suites to prevent cached patterns from leaking across test cases.
+ */
+export function clearPathCache(): void {
+  PREFIX_CACHE.clear();
+  PATH_CACHE.clear();
+}
+
 function escapeRegex(value: string): string {
   return value.replace(ESCAPE_RE(), "\\$&");
 }
@@ -182,7 +191,7 @@ export function appendQuery(path: string, query?: QueryParams, hash?: string): s
  */
 export function extractQueryFromPath(
   path: string,
-  options?: { coerceBooleans?: boolean },
+  options?: { coerceBooleans?: boolean; coerceNumbers?: boolean },
 ): QueryParams {
   const hashIdx = path.indexOf("#");
   const noHash = hashIdx === -1 ? path : path.slice(0, hashIdx);
@@ -194,9 +203,15 @@ export function extractQueryFromPath(
 
   for (const key of new Set(params.keys())) {
     const values = params.getAll(key);
-    const parsed = options?.coerceBooleans
-      ? values.map((v) => (v === "true" ? true : v === "false" ? false : v))
-      : values;
+    const parsed = values.map((v) => {
+      if (options?.coerceBooleans && (v === "true" || v === "false")) {
+        return v === "true";
+      }
+      if (options?.coerceNumbers && v.trim() !== "" && !isNaN(Number(v))) {
+        return Number(v);
+      }
+      return v;
+    });
     result[key] = parsed.length > 1 ? parsed : (parsed[0] ?? "");
   }
 
@@ -379,11 +394,21 @@ export function getParamNames(template: string): string[] {
  */
 const PATH_CACHE = new Map<string, RegExp>();
 
-export function matchPath(template: string): RegExp {
-  const cached = PATH_CACHE.get(template);
+export function matchPath(
+  template: string,
+  options?: { end?: boolean; caseSensitive?: boolean },
+): RegExp {
+  const end = options?.end ?? true;
+  const flags = options?.caseSensitive ? "" : "i";
+  const cacheKey = `${template}:${end}:${flags}`;
+
+  const cached = PATH_CACHE.get(cacheKey);
   if (cached !== undefined) return cached;
-  const re = new RegExp(`^${createTemplatePattern(template)}$`);
-  PATH_CACHE.set(template, re);
+
+  const basePattern = createTemplatePattern(template);
+  const pattern = end ? `^${basePattern}$` : `^${basePattern}(?=/|$)`;
+  const re = new RegExp(pattern, flags);
+  PATH_CACHE.set(cacheKey, re);
   return re;
 }
 

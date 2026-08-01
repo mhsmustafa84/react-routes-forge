@@ -184,3 +184,13 @@ export type BreadcrumbOptions = {
    */
   labelResolver?: (key: string) => string;
 };
+
+/**
+ * Options for `matchPath()`.
+ */
+export type MatchPathOptions = {
+  /** When true, match requires an exact end of path string (default: true). */
+  end?: boolean;
+  /** When true, perform case-sensitive matching (default: false). */
+  caseSensitive?: boolean;
+};
