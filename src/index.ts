@@ -18,7 +18,9 @@ export type {
   FlatRoute,
   BreadcrumbItem,
   BreadcrumbOptions,
+  MatchPathOptions,
 } from "./types";
+export type { StaticRoute, DynamicRoute } from "./core/defineRoutes";
 
 // Utilities
 export {
@@ -30,4 +32,6 @@ export {
   getParamNames,
   flattenRoutes,
   getBreadcrumbs,
+  devWarn,
+  clearPathCache,
 } from "./core/utils";
