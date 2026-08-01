@@ -1,18 +1,21 @@
-import { buildPath, devWarn, extractParamNames, flattenRoutes, isDynamic } from "./utils";
+import {
+  buildPath,
+  devWarn,
+  extractParamNames,
+  flattenRoutes,
+  isDynamic,
+} from "./utils";
 import type {
   BuildPathOptions,
   ExtractParams,
   PathParams,
   QueryParams,
   RoutePath,
+  RouteTree,
 } from "../types";
 
 // Re-export so consumers that import from 'core/defineRoutes' get the full surface
 export { buildPath, extractParamNames, isDynamic } from "./utils";
-
-type RouteInput = {
-  [key: string]: string | RouteInput;
-};
 
 /**
  * A dynamic route is a template string with a `:param` or trailing `/*` splat,
@@ -28,15 +31,15 @@ export type DynamicRoute<T extends string> =
       }
     : T;
 
-type ResolvedRoutes<T extends RouteInput> = {
-  [K in keyof T]: T[K] extends RouteInput
+type ResolvedRoutes<T extends RouteTree> = {
+  [K in keyof T]: T[K] extends RouteTree
     ? ResolvedRoutes<T[K]>
     : T[K] extends string
       ? DynamicRoute<T[K]>
       : never;
 };
 
-const isRouteGroup = (value: unknown): value is RouteInput =>
+const isRouteGroup = (value: unknown): value is RouteTree =>
   typeof value === "object" &&
   value !== null &&
   !Array.isArray(value) &&
@@ -96,7 +99,7 @@ function wrapDynamicPath<T extends string>(template: T): DynamicRoute<T> {
   return wrapped as unknown as DynamicRoute<T>;
 }
 
-function processRouteMap<T extends RouteInput>(routes: T): ResolvedRoutes<T> {
+function processRouteMap<T extends RouteTree>(routes: T): ResolvedRoutes<T> {
   const result = {} as ResolvedRoutes<T>;
 
   for (const key in routes) {
@@ -111,7 +114,7 @@ function processRouteMap<T extends RouteInput>(routes: T): ResolvedRoutes<T> {
       ) as ResolvedRoutes<T>[typeof key];
     } else if (isRouteGroup(value)) {
       result[key] = processRouteMap(
-        value as RouteInput,
+        value as RouteTree,
       ) as unknown as ResolvedRoutes<T>[typeof key];
     }
   }
@@ -119,7 +122,7 @@ function processRouteMap<T extends RouteInput>(routes: T): ResolvedRoutes<T> {
   return result;
 }
 
-export function defineRoutes<T extends RouteInput>(
+export function defineRoutes<T extends RouteTree>(
   routes: T,
 ): ResolvedRoutes<T> {
   const result = processRouteMap(routes);

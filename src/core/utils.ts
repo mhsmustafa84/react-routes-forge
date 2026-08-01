@@ -1,4 +1,11 @@
-import type { BreadcrumbItem, BreadcrumbOptions, QueryParams, RouteParam, RouteParams, BuildPathOptions, FlatRoute } from "../types";
+import type {
+  BreadcrumbItem,
+  BreadcrumbOptions,
+  BuildPathOptions,
+  FlatRoute,
+  QueryParams,
+  RouteParams,
+} from "../types";
 
 /** Returns a fresh RegExp each call — avoids shared `lastIndex` state on /g patterns. */
 const ESCAPE_RE = () => /[.*+?^${}()|[\]\\]/g;

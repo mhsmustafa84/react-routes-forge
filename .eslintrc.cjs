@@ -11,7 +11,7 @@ module.exports = {
     sourceType: "module",
     ecmaFeatures: { jsx: true },
   },
-  extends: ["eslint:recommended"],
+  extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
   ignorePatterns: [
     "dist/",
     "node_modules/",
@@ -21,8 +21,12 @@ module.exports = {
   rules: {
     // TypeScript handles both of these — they produce false positives on TS files.
     "no-undef": "off",
-    "no-unused-vars": "off",
     // TS overloads produce duplicate function declarations.
     "no-redeclare": "off",
+    // Tests intentionally cast with `as any`; TS's own checks are in charge.
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+    // Keep runtime type-imports split from value imports.
+    "@typescript-eslint/consistent-type-imports": "error",
   },
 };
