@@ -11,6 +11,7 @@ export type {
   QueryParams,
   RouteLeaf,
   RouteMap,
+  RouteTree,
   ExtractParams,
   PathParams,
   BuildPathOptions,

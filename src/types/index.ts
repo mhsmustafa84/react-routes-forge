@@ -29,6 +29,14 @@ export type RouteMap = {
 };
 
 /**
+ * Annotatable shape of a route map for `defineRoutes()`.
+ * Each key is either a static path string or a nested route tree.
+ */
+export type RouteTree = {
+  [key: string]: string | RouteTree;
+};
+
+/**
  * Extracts param names from a path template string.
  * e.g. '/users/:id/posts/:postId' → 'id' | 'postId'
  */
