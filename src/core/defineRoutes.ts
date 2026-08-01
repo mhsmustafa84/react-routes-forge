@@ -3,6 +3,7 @@ import {
   devWarn,
   extractParamNames,
   flattenRoutes,
+  isActivePath,
   isDynamic,
 } from "./utils";
 import type {
@@ -23,13 +24,17 @@ export { buildPath, extractParamNames, isDynamic } from "./utils";
  *
  * Exported so consumers (e.g. the hooks entry) can type against it.
  */
+export type StaticRoute<T extends string> = T & {
+  build(query?: QueryParams, options?: BuildPathOptions): RoutePath;
+};
+
 export type DynamicRoute<T extends string> =
   T extends `${string}:${string}` | `${string}/*`
     ? T & {
         build(params: PathParams<T>, query?: QueryParams, options?: BuildPathOptions): RoutePath;
         paramNames: Array<ExtractParams<T>>;
       }
-    : T;
+    : StaticRoute<T>;
 
 type ResolvedRoutes<T extends RouteTree> = {
   [K in keyof T]: T[K] extends RouteTree
@@ -64,14 +69,14 @@ function validateTemplate(template: string, key: string): void {
 }
 
 /**
- * Warn (dev-only) when two routes resolve to the same path template, which
- * would make one of them unreachable.
+ * Warn (dev-only) when two routes resolve to the same path template or shadow each other.
  */
 function detectDuplicatePaths(routes: Record<string, unknown>): void {
   const seen = new Map<string, string>();
   const warned = new Set<string>();
+  const flat = flattenRoutes(routes);
 
-  for (const route of flattenRoutes(routes)) {
+  for (const route of flat) {
     const existing = seen.get(route.path);
     if (existing === undefined) {
       seen.set(route.path, route.key);
@@ -83,6 +88,37 @@ function detectDuplicatePaths(routes: Record<string, unknown>): void {
       );
     }
   }
+
+  // Shadowing check: warn when a static path matches a dynamic path defined before it
+  for (let i = 0; i < flat.length; i++) {
+    const r1 = flat[i]!;
+    if (!isDynamic(r1.path)) continue;
+
+    for (let j = i + 1; j < flat.length; j++) {
+      const r2 = flat[j]!;
+      if (isDynamic(r2.path)) continue;
+
+      if (isActivePath(r2.path, r1.path, { exact: true })) {
+        const pairKey = `${r1.key}->${r2.key}`;
+        if (!warned.has(pairKey)) {
+          warned.add(pairKey);
+          devWarn(
+            `[route-forge] Route "${r2.key}" ("${r2.path}") is shadowed by dynamic route "${r1.key}" ("${r1.path}"). Place static routes before dynamic parameters in route trees.`,
+          );
+        }
+      }
+    }
+  }
+}
+
+function wrapStaticPath<T extends string>(template: T): StaticRoute<T> {
+  const wrapped = new String(template) as unknown as StaticRoute<T> & {
+    build: (query?: QueryParams, options?: BuildPathOptions) => RoutePath;
+  };
+  wrapped.build = (query?: QueryParams, options?: BuildPathOptions) =>
+    buildPath(template, {}, query, options) as RoutePath;
+
+  return wrapped as unknown as StaticRoute<T>;
 }
 
 function wrapDynamicPath<T extends string>(template: T): DynamicRoute<T> {
@@ -110,7 +146,7 @@ function processRouteMap<T extends RouteTree>(routes: T): ResolvedRoutes<T> {
     if (typeof value === "string") {
       validateTemplate(value, key);
       result[key] = (
-        isDynamic(value) ? wrapDynamicPath(value) : value
+        isDynamic(value) ? wrapDynamicPath(value) : wrapStaticPath(value)
       ) as ResolvedRoutes<T>[typeof key];
     } else if (isRouteGroup(value)) {
       result[key] = processRouteMap(

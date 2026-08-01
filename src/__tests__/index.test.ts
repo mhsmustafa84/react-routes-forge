@@ -37,11 +37,11 @@ describe("defineRoutes", () => {
     MULTI: "/resource/:type/items/:itemId",
   } as const);
 
-  it("preserves static paths as strings", () => {
-    expect(PATHS.HOME).toBe("/");
-    expect(PATHS.LOGIN).toBe("/login");
-    expect(PATHS.USERS.ROOT).toBe("/users");
-    expect(PATHS.USERS.ADD).toBe("/users/add");
+  it("preserves static paths as string-coercible objects with .build()", () => {
+    expect(String(PATHS.HOME)).toBe("/");
+    expect(String(PATHS.LOGIN)).toBe("/login");
+    expect(String(PATHS.USERS.ROOT)).toBe("/users");
+    expect(String(PATHS.USERS.ADD)).toBe("/users/add");
   });
 
   it("keeps dynamic paths coercible to their template string", () => {
@@ -77,9 +77,9 @@ describe("defineRoutes", () => {
     expect((PATHS.MULTI as any).paramNames).toEqual(["type", "itemId"]);
   });
 
-  it("does not attach .build() to static paths", () => {
-    expect((PATHS.HOME as any).build).toBeUndefined();
-    expect((PATHS.USERS.ROOT as any).build).toBeUndefined();
+  it("attaches .build() to static paths for query/hash support", () => {
+    expect(typeof (PATHS.HOME as any).build).toBe("function");
+    expect((PATHS.HOME as any).build({ tab: "info" })).toBe("/?tab=info");
   });
 
   it("handles nested route groups", () => {
@@ -92,7 +92,7 @@ describe("defineRoutes", () => {
       },
     } as const);
 
-    expect(PATHS.SERVICES.ROOT).toBe("/services");
+    expect(String(PATHS.SERVICES.ROOT)).toBe("/services");
     expect((PATHS.SERVICES.BCC.EDIT as any).build({ id: 7 })).toBe(
       "/services/bcc/edit/7",
     );
@@ -161,13 +161,13 @@ describe("defineRoutes validation", () => {
 
   it("does not treat arrays as route groups", () => {
     const routes = defineRoutes({ GOOD: "/ok", BAD: ["/a", "/b"] } as any);
-    expect(routes.GOOD).toBe("/ok");
+    expect(String(routes.GOOD)).toBe("/ok");
     expect((routes as any).BAD).toBeUndefined();
   });
 
   it("does not treat class instances as route groups", () => {
     const routes = defineRoutes({ GOOD: "/ok", BAD: new Date() } as any);
-    expect(routes.GOOD).toBe("/ok");
+    expect(String(routes.GOOD)).toBe("/ok");
     expect((routes as any).BAD).toBeUndefined();
   });
 
