@@ -97,4 +97,4 @@ These are warnings, not errors — invalid routes still build, so a broken defin
 
 - [API Reference](/api/define-routes) — start with `defineRoutes`
 - [React Hooks](/hooks/use-route-params) — typed hooks for React Router
-- [Query & Hash Support](/query-hash) — attaching query strings and hash fragments
+- [Query & Hash Support](/api/build#query-string-serialization) — attaching query strings and hash fragments

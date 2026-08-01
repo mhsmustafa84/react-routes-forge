@@ -12,7 +12,7 @@ export default defineConfig({
     nav: [
       { text: "Home", link: "/" },
       { text: "Getting Started", link: "/getting-started" },
-      { text: "API Reference", link: "/api-reference" },
+      { text: "API Reference", link: "/api/define-routes" },
     ],
 
     sidebar: [
@@ -55,7 +55,6 @@ export default defineConfig({
       {
         text: "Guides",
         items: [
-          { text: "Query String & Hash Support", link: "/query-hash" },
           { text: "Strict Mode", link: "/strict-mode" },
           { text: "Migrating from Old Patterns", link: "/migration" },
           { text: "TypeScript Support", link: "/typescript-support" },

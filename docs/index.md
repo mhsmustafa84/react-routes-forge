@@ -140,7 +140,7 @@ function EditUser() {
 - [Getting Started](/getting-started) — install and first route definition
 - [defineRoutes](/api/define-routes) — start with the core API
 - [React Hooks](/hooks/use-route-params) — typed hooks for React Router integration
-- [Query & Hash Support](/query-hash) — query strings and hash fragments
+- [Query & Hash Support](/api/build#query-string-serialization) — query strings and hash fragments
 - [Strict Mode](/strict-mode) — catching missing params at compile time
 - [Migration Guide](/migration) — migrate from manual path patterns
 - [TypeScript Support](/typescript-support) — type inference details
