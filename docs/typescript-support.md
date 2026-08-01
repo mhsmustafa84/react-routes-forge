@@ -28,17 +28,29 @@ The package exports the following types for advanced use cases:
 | ------------------- | ---------------------------------------------------- |
 | `RoutePath`         | A static route string, e.g. `'/users/:id'`          |
 | `RouteBuilder`      | A route builder function                             |
-| `RouteParam`        | Accepted param value types (`string \| number`)       |
+| `RouteParam`        | Accepted param value types (`string \| number \| boolean`) |
 | `RouteParams`       | Record of param name to value                        |
 | `QueryParams`       | Query parameter record with array/null/undefined support |
 | `RouteLeaf`         | Either a static path or a builder function           |
 | `RouteMap`          | Recursively defined route map                        |
-| `ExtractParams`     | Extracts param names from a template string type      |
+| `RouteTree`         | Annotatable shape of a route map for `defineRoutes`  |
+| `ExtractParams`     | Extracts param names from a template string type (incl. `'*'` for splats) |
 | `PathParams`        | Builds a params object type from a path template      |
-| `BuildPathOptions`  | Options for `buildPath` (strict, hash)               |
+| `BuildPathOptions`  | Options for `buildPath` (strict, encode, hash)       |
 | `FlatRoute`         | A single flattened route entry (`{ key, path }`)     |
 | `BreadcrumbItem`    | A single breadcrumb entry                            |
-| `BreadcrumbOptions` | Options for `getBreadcrumbs`                         |
+| `BreadcrumbOptions` | Options for `getBreadcrumbs` (resolver or labels map) |
+
+Annotate a plain route object with `RouteTree` before passing it to `defineRoutes()`:
+
+```ts
+import type { RouteTree } from "react-routes-forge";
+
+const routes: RouteTree = {
+  HOME: "/",
+  USERS: { ROOT: "/users", EDIT: "/users/edit/:id" },
+};
+```
 
 ## Requirements
 

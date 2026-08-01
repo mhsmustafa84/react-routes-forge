@@ -29,10 +29,14 @@
   - [`getParamNames(template)`](#getparamnamestemplate)
   - [`flattenRoutes(routes)`](#flattenroutesroutes)
   - [`getBreadcrumbs(routes, currentPath, options?)`](#getbreadcrumbsroutes-currentpath-options)
+  - [`appendQuery(path, query?, hash?)`](#appendquerypath-query-hash)
+  - [`extractQueryFromPath(path, options?)`](#extractqueryfrompathpath-options)
 - [React hooks](#react-hooks)
   - [`useRouteParams<T>()`](#useroutparamst)
   - [`useNavigateTo()`](#usenavigateto)
   - [`useResolvedPath(template, params, query?, options?)`](#useresolvedpathtemplate-params-query-options)
+- [Splat (`/*`) segments](#splat--segments)
+- [Route validation](#route-validation)
 - [Query string support](#query-string-support)
 - [Hash fragment support](#hash-fragment-support)
 - [Strict mode](#strict-mode)
@@ -161,8 +165,11 @@ That's the entire API surface you need for most apps. Everything below covers th
 | ----------- | ----------------------- | --------------------------------------- | ---------------------------------------------------- |
 | **Static**  | `HOME: '/'`             | Plain string primitive                  | Nothing extra — use it directly                      |
 | **Dynamic** | `DETAILS: '/users/:id'` | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames` |
+| **Splat**   | `FILES: '/files/*'`     | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames` |
 
-`defineRoutes()` walks your route object recursively, leaving static paths untouched and wrapping any path containing a `:param` segment so it can carry a builder alongside its template string.
+`defineRoutes()` walks your route object recursively, leaving static paths untouched and wrapping any path containing a `:param` segment or a trailing `/*` splat so it can carry a builder alongside its template string.
+
+> `defineRoutes()` also validates your templates in development — missing leading `/`, invalid param names, non-trailing `*`, and duplicate path templates all produce a `console.warn`. See [Route validation](#route-validation).
 
 ---
 
@@ -190,6 +197,8 @@ Quick reference for everything the package exports — grouped by kind. Click th
 | [`getParamNames(template)`](#getparamnamestemplate)                                            | List the `:param` names in a template                      |
 | [`flattenRoutes(routes)`](#flattenroutesroutes)                                                | Flatten a `PATHS` tree for sitemaps / duplicate detection  |
 | [`getBreadcrumbs(routes, currentPath, options?)`](#getbreadcrumbsroutes-currentpath-options)   | Build a breadcrumb trail from a route tree and current URL |
+| [`appendQuery(path, query?, hash?)`](#appendquerypath-query-hash)                              | Append query params / hash to an existing path             |
+| [`extractQueryFromPath(path, options?)`](#extractqueryfrompathpath-options)                    | Parse a query string back into an object                   |
 
 ### React hooks
 
@@ -208,9 +217,9 @@ Quick reference for everything the package exports — grouped by kind. Click th
 Creates a fully typed route object from a nested plain object.
 
 - Static paths are returned as-is — use them directly anywhere a string is expected (e.g. `<Route path={...} />`).
-- Dynamic paths (containing `:param`) gain:
+- Dynamic paths (containing `:param`) and splat paths (trailing `/*`) gain:
   - **`.build(params, query?, options?)`** — resolves the template into a concrete URL
-  - **`.paramNames`** — array of the param names extracted from the template, e.g. `['id']`
+  - **`.paramNames`** — array of the param names extracted from the template, e.g. `['id']` (a splat is reported as `['*']`)
 
 Nesting is unlimited — organize routes into as many groups and sub-groups as your app needs.
 
@@ -273,13 +282,23 @@ build("/search/:query", { query: "a/b" });
 // Pass { encode: false } if a value is already encoded
 build("/search/:query", { query: "a%2Fb" }, undefined, { encode: false });
 // → '/search/a%2Fb'
+
+// Splat segments capture a path-like remainder, preserving `/` separators
+build("/files/*", { "*": "reports/2026/q1" });
+// → '/files/reports/2026/q1'
 ```
+
+See [Splat (`/*`) segments](#splat--segments) for details.
 
 ---
 
 ### `isActivePath(currentPath, template, options?)`
 
-Checks whether a resolved path matches a route template — the building block for nav-highlighting ("is this link active?"). Query strings on `currentPath` are ignored automatically.
+Checks whether a resolved path matches a route template — the building block for nav-highlighting ("is this link active?"). Query strings on `currentPath` are ignored automatically. It mirrors React Router's `NavLink` matching semantics:
+
+- **Case-insensitive by default** — pass `{ caseSensitive: true }` to opt out.
+- **Trailing slashes are tolerated** — `/users/` matches `/users`.
+- **`exact: true` (default)** requires a full match; **`exact: false`** matches any path that starts with the template (so `/` matches every path as a prefix).
 
 ```ts
 import { isActivePath } from "react-routes-forge";
@@ -288,6 +307,9 @@ isActivePath("/users/42", "/users/:id"); // true
 isActivePath("/users/42/posts", "/users/:id"); // false (exact match by default)
 isActivePath("/users/42/posts", "/users/:id", { exact: false }); // true  (prefix match)
 isActivePath("/users/42?tab=profile", "/users/:id"); // true  (query string ignored)
+isActivePath("/Users/42", "/users/:id"); // true  (case-insensitive by default)
+isActivePath("/Users/42", "/users/:id", { caseSensitive: true }); // false
+isActivePath("/users/42/", "/users/:id"); // true  (trailing slash tolerated)
 ```
 
 A common real-world use — highlighting the active nav link:
@@ -361,6 +383,7 @@ Returns the list of param names present in a template string.
 import { getParamNames } from "react-routes-forge";
 
 getParamNames("/users/:id/posts/:postId"); // → ['id', 'postId']
+getParamNames("/files/*"); // → ['*']  (the splat param)
 getParamNames("/users"); // → []
 ```
 
@@ -459,11 +482,53 @@ getBreadcrumbs(PATHS, "/users/edit/42", {
 // → [{ label: "HOME" }, { label: "ROOT" }, { label: "EDIT" }]
 ```
 
+**Label map** — the ergonomic alternative for a handful of overrides. Keys are dot-joined route keys; matching keys take precedence over `labelResolver`:
+
+```ts
+getBreadcrumbs(PATHS, "/users/edit/42", {
+  labels: { "USERS.ROOT": "Members", "USERS.EDIT": "Edit member" },
+});
+// → [{ label: "Home" }, { label: "Members" }, { label: "Edit member" }]
+```
+
 **Pre-flattened input** — pass a cached `flattenRoutes()` result instead of the tree:
 
 ```ts
 const flat = flattenRoutes(PATHS);
 getBreadcrumbs(flat, "/users/edit/42"); // same result as passing the tree
+```
+
+---
+
+### `appendQuery(path, query?, hash?)`
+
+Appends a query string and/or hash fragment to a path that may already contain a query or hash. Existing query pairs are preserved, the query is inserted before any hash, and an existing hash is kept unless a new one is given.
+
+```ts
+import { appendQuery } from "react-routes-forge";
+
+appendQuery("/users?tab=list", { page: 2 }); // → '/users?tab=list&page=2'
+appendQuery("/users#top", { tab: "list" }); // → '/users?tab=list#top'
+appendQuery("/users", { active: true }); // → '/users?active=true'
+appendQuery("/users", { tag: ["a", "b"] }); // → '/users?tag=a&tag=b'
+```
+
+This is the same helper every path-resolving function uses internally.
+
+---
+
+### `extractQueryFromPath(path, options?)`
+
+Parses the query string out of a path (or bare query string) back into a plain object. Repeated keys become arrays; single keys are scalar strings. Pass `{ coerceBooleans: true }` to convert the strings `"true"`/`"false"` to real booleans.
+
+```ts
+import { extractQueryFromPath } from "react-routes-forge";
+
+extractQueryFromPath("/users/42?tab=profile&tag=a&tag=b");
+// → { tab: "profile", tag: ["a", "b"] }
+
+extractQueryFromPath("/search?active=true", { coerceBooleans: true });
+// → { active: true }
 ```
 
 ---
@@ -474,7 +539,7 @@ Import these only if you're using React Router — they live in a separate `reac
 
 ### `useRouteParams<T>()`
 
-Typed wrapper around React Router's `useParams`. Pass the route's template string as a generic to get a correctly typed params object back — no casting, and it works for any number of `:param` segments.
+Typed wrapper around React Router's `useParams`. Pass the route's template string as a generic to get a correctly typed params object back — no casting, and it works for any number of `:param` segments. Alternatively, pass a **dynamic route value from your `PATHS` tree** and the params are inferred from it automatically:
 
 ```tsx
 import { useRouteParams } from "react-routes-forge/hooks";
@@ -490,6 +555,13 @@ function EditUser() {
 function Comment() {
   const { postId, commentId } =
     useRouteParams<"/posts/:postId/comments/:commentId">();
+  // ...
+}
+
+// Or pass a route from your PATHS tree — types are inferred:
+const PATHS = defineRoutes({ USERS: { EDIT: "/users/edit/:id" } } as const);
+function EditUserInferred() {
+  const { id } = useRouteParams(PATHS.USERS.EDIT);
   // ...
 }
 ```
@@ -522,7 +594,7 @@ navigateTo(PATHS.USERS.ROOT, { state: { from: "settings" } });
 
 ### `useResolvedPath(template, params, query?, options?)`
 
-Resolves a path template to a concrete URL string without navigating — useful for `<Link to={...} />`, preloading, or building a URL for something other than `navigate()`. Backed by React Router's `generatePath`, so it correctly supports splat (`*`) and optional (`:param?`) segments. Accepts the same `query` and `options` as [`build()`](#buildtemplate-params-query-options).
+Resolves a path template to a concrete URL string without navigating — useful for `<Link to={...} />`, preloading, or building a URL for something other than `navigate()`. It mirrors the library's own [`build()`](#buildtemplate-params-query-options), so splat (`*`) and optional (`:param?`) segments work identically to the core API — and the encoding/`strict` behaviour is consistent across React Router v6 and v7. Accepts the same `query` and `options` as [`build()`](#buildtemplate-params-query-options).
 
 ```tsx
 import { useResolvedPath } from "react-routes-forge/hooks";
@@ -533,12 +605,72 @@ const path = useResolvedPath("/users/:id", { id: 42 });
 const path = useResolvedPath("/users/:id", { id: 42 }, { tab: "info" });
 // → '/users/42?tab=info'
 
+// Splat segments are preserved
+const path = useResolvedPath("/files/*", { "*": "a/b/c" });
+// → '/files/a/b/c'
+
 // Strict mode — throws RangeError instead of warning on missing params
 const path = useResolvedPath("/users/:id", {}, undefined, { strict: true });
 
 // With hash fragment
 const path = useResolvedPath("/page", {}, undefined, { hash: "section" });
 // → '/page#section'
+```
+
+---
+
+## Splat (`/*`) segments
+
+Splat routes (`/files/*`) capture the rest of the path — including slashes — into a single `*` param, matching React Router semantics. Supported across the entire core API, not just the hooks.
+
+```ts
+import { defineRoutes, build, isActivePath, extractParamsFromPath } from "react-routes-forge";
+
+const PATHS = defineRoutes({
+  FILES: "/files/*",
+} as const);
+
+PATHS.FILES.build({ "*": "reports/2026/q1" }); // → '/files/reports/2026/q1'
+String(PATHS.FILES); // → '/files/*'
+PATHS.FILES.paramNames; // → ['*']
+```
+
+Behaviour notes:
+
+- **Slashes in the value are preserved** (they're path separators); other special characters are still URL-encoded — `"/files/*"` with `"a b/c?d"` → `"/files/a%20b/c%3Fd"`.
+- **A missing splat value drops the `/*` suffix** — `/files/*` resolves to `/files` (matching React Router, where the splat route also matches the base path).
+- `isActivePath("/files/a/b", "/files/*")` → `true`; `extractParamsFromPath("/files/*", "/files/a/b")` → `{ "*": "a/b" }`.
+- A splat must be **trailing** (`/files/*`). A `*` in the middle of a path is invalid and produces a dev warning (see below).
+
+---
+
+## Route validation
+
+`defineRoutes()` validates every template in development (no-op in production) and warns via `console.warn` about likely mistakes:
+
+| Problem | Example | Warning |
+| ------- | ------- | ------- |
+| Missing leading `/` | `"users/:id"` | `does not start with "/"` |
+| Invalid param name | `"/users/:user name"` | `invalid param name` |
+| Non-trailing splat | `"/files/*/extra"` | `*` outside a trailing `"/*"` |
+| Duplicate path template | `FOO: "/foo"` and `BAR: "/foo"` | `Duplicate route path "/foo"` (names both keys) |
+
+```ts
+// duplicate route paths are caught at startup instead of as a routing bug later
+defineRoutes({
+  A: { FOO: "/foo" },
+  B: { FOO: "/foo" },
+} as const);
+// ⚠ console.warn: [route-forge] Duplicate route path "/foo" for "A.FOO" and "B.FOO". Only one of them will be reachable.
+```
+
+These are warnings, not errors — invalid routes still build, so a broken definition can't crash your app at import time. Run a stricter check once in tests if you want duplicates to fail the build:
+
+```ts
+it("has no duplicate route paths", () => {
+  const paths = flattenRoutes(PATHS).map((r) => r.path);
+  expect(paths).toEqual([...new Set(paths)]);
+});
 ```
 
 ---
@@ -561,6 +693,13 @@ build("/search", {}, { tags: ["admin", "moderator"] });
 // → '/search?tags=admin&tags=moderator'
 ```
 
+**Boolean values** serialize to `"true"`/`"false"`:
+
+```ts
+build("/search", {}, { active: true, draft: false });
+// → '/search?active=true&draft=false'
+```
+
 **`null` and `undefined` values are dropped**, so you can pass optional filters without conditionally building the object:
 
 ```ts
@@ -576,6 +715,8 @@ import { build } from "react-routes-forge";
 build(PATHS.USERS.ROOT, {}, { sort: "asc", page: 2 });
 // → '/users?sort=asc&page=2'
 ```
+
+Reading query params back out is handled by [`extractQueryFromPath(path, options?)`](#extractqueryfrompathpath-options), and appending to an existing URL (e.g. a link with pre-set filters) by [`appendQuery(path, query?, hash?)`](#appendquerypath-query-hash).
 
 ---
 
@@ -703,7 +844,7 @@ Prefer template literals or explicit `String()` coercion when comparing dynamic 
 
 ### `useResolvedPath` vs. the library's own `buildPath`
 
-`useResolvedPath` delegates to React Router's `generatePath` when all params are present, which correctly handles splat (`*`) segments. The library's own `buildPath`/`.build()` handles optional (`:param?`) segments identically — the segment is dropped when the param is missing. If params are missing, the hook falls back to the same `buildPath`/strict-mode behaviour described above, so failure modes stay consistent. Splat (`*`) support is only guaranteed via the hook, not via `.build()`.
+`useResolvedPath` is a thin wrapper around the library's own `buildPath`, so splat (`*`), optional (`:param?`) and encoding behaviour are identical across every entry point — and consistent across React Router v6 and v7 (v7's `generatePath` URL-encodes values itself, which would otherwise double-encode).
 
 ### ESM-only package
 
@@ -723,21 +864,35 @@ PATHS.USERS.EDIT.build({ userId: 42 }); // ✗ compile error — 'id' expected, 
 
 `.paramNames` is similarly typed as a literal array of the exact param names in the template, not a generic `string[]`.
 
+To annotate a plain route object (e.g. a shared constant used by `defineRoutes()`), import the `RouteTree` type:
+
+```ts
+import type { RouteTree } from "react-routes-forge";
+
+const routes: RouteTree = {
+  HOME: "/",
+  USERS: { ROOT: "/users", EDIT: "/users/edit/:id" },
+};
+```
+
 ---
 
 ## Testing
 
-The package ships with a full test suite covering the core builder/utility functions and the React hooks, including strict-mode behaviour, query string edge cases (arrays, `null`/`undefined` filtering), nested route groups, and duplicate-path detection via `flattenRoutes`.
+The package ships with a full test suite covering the core builder/utility functions and the React hooks, including strict-mode behaviour, query string edge cases (arrays, booleans, `null`/`undefined` filtering), splat segments, route validation, nested route groups, and duplicate-path detection.
 
 ```bash
-npm test            # run the full suite once
-npm run test:watch  # watch mode
+npm test                # run the full suite once (bun test)
+npm run test:watch      # watch mode
+npm run test:coverage   # run with coverage (vitest + v8, outputs lcov.info)
 
 # equivalent with other package managers
 pnpm test / pnpm test:watch
 yarn test / yarn test:watch
 bun test / bun test:watch
 ```
+
+CI runs the suite across a **matrix of Node.js versions (18 / 20 / 22 / 24)** and **React Router v6 and v7**, plus lint, a production build, and a coverage job that uploads `lcov.info` as a build artifact (see `.github/workflows/ci-security.yml`).
 
 If you're contributing, new behaviour should come with a matching test — the existing suite is organized by function/hook, so add cases alongside the relevant `describe` block rather than starting a new file.
 

@@ -7,11 +7,13 @@
 Creates a fully typed route object from a nested plain object.
 
 - Static paths are returned as-is — use them directly anywhere a string is expected.
-- Dynamic paths (containing `:param`) gain:
+- Dynamic paths (containing `:param`) and splat paths (trailing `/*`) gain:
   - **`.build(params, query?, options?)`** — resolves the template into a concrete URL
-  - **`.paramNames`** — array of the param names extracted from the template
+  - **`.paramNames`** — array of the param names extracted from the template (a splat is reported as `['*']`)
 
 Nesting is unlimited — organize routes into as many groups and sub-groups as your app needs.
+
+> `defineRoutes()` also validates every template in development (no-op in production), warning on missing leading `/`, invalid param names, non-trailing `*`, and duplicate path templates. See [Route validation](/getting-started#route-validation).
 
 ```ts
 const PATHS = defineRoutes({
@@ -73,6 +75,10 @@ build("/search/:query", { query: "a/b" });
 // Pass { encode: false } if a value is already encoded
 build("/search/:query", { query: "a%2Fb" }, undefined, { encode: false });
 // → '/search/a%2Fb'
+
+// Splat segments capture a path-like remainder, preserving `/` separators
+build("/files/*", { "*": "reports/2026/q1" });
+// → '/files/reports/2026/q1'
 ```
 
 ---
@@ -81,7 +87,11 @@ build("/search/:query", { query: "a%2Fb" }, undefined, { encode: false });
 
 `isActivePath(currentPath, template, options?): boolean`
 
-Checks whether a resolved path matches a route template — the building block for nav-highlighting. Query strings on `currentPath` are ignored automatically.
+Checks whether a resolved path matches a route template — the building block for nav-highlighting. Query strings on `currentPath` are ignored automatically. Mirrors React Router's `NavLink` matching semantics:
+
+- **Case-insensitive by default** — pass `{ caseSensitive: true }` to opt out.
+- **Trailing slashes are tolerated** — `/users/` matches `/users`.
+- **`exact: true` (default)** requires a full match; `exact: false` matches any path starting with the template.
 
 ```ts
 import { isActivePath } from "react-routes-forge";
@@ -90,6 +100,9 @@ isActivePath("/users/42", "/users/:id");              // true
 isActivePath("/users/42/posts", "/users/:id");        // false (exact match by default)
 isActivePath("/users/42/posts", "/users/:id", { exact: false }); // true (prefix match)
 isActivePath("/users/42?tab=profile", "/users/:id");  // true (query string ignored)
+isActivePath("/Users/42", "/users/:id");              // true (case-insensitive by default)
+isActivePath("/Users/42", "/users/:id", { caseSensitive: true }); // false
+isActivePath("/users/42/", "/users/:id");             // true (trailing slash tolerated)
 ```
 
 A common real-world use — highlighting the active nav link:
@@ -171,6 +184,7 @@ Returns the list of param names present in a template string.
 import { getParamNames } from "react-routes-forge";
 
 getParamNames("/users/:id/posts/:postId"); // → ['id', 'postId']
+getParamNames("/files/*");                 // → ['*']  (the splat param)
 getParamNames("/users");                   // → []
 ```
 
@@ -252,6 +266,45 @@ getBreadcrumbs(PATHS, "/users/edit/42", {
   labelResolver: (key) => key.split(".").pop()!.replace(/_/g, " ").toUpperCase(),
 });
 // → [{ label: "HOME" }, { label: "ROOT" }, { label: "EDIT" }]
+```
+
+**Label map** — matching keys take precedence over `labelResolver`:
+
+```ts
+getBreadcrumbs(PATHS, "/users/edit/42", {
+  labels: { "USERS.ROOT": "Members", "USERS.EDIT": "Edit member" },
+});
+// → [{ label: "Home" }, { label: "Members" }, { label: "Edit member" }]
+```
+
+## appendQuery
+
+`appendQuery(path, query?, hash?): string`
+
+Appends a query string and/or hash fragment to a path that may already contain a query or hash. Existing query pairs are preserved, the query is inserted before any hash, and an existing hash is kept unless a new one is given.
+
+```ts
+import { appendQuery } from "react-routes-forge";
+
+appendQuery("/users?tab=list", { page: 2 }); // → '/users?tab=list&page=2'
+appendQuery("/users#top", { tab: "list" });  // → '/users?tab=list#top'
+appendQuery("/users", { active: true });     // → '/users?active=true'
+```
+
+## extractQueryFromPath
+
+`extractQueryFromPath(path, options?): QueryParams`
+
+Parses the query string out of a path (or bare query string) back into a plain object. Repeated keys become arrays; single keys are scalar strings. Pass `{ coerceBooleans: true }` to convert `"true"`/`"false"` to real booleans.
+
+```ts
+import { extractQueryFromPath } from "react-routes-forge";
+
+extractQueryFromPath("/users/42?tab=profile&tag=a&tag=b");
+// → { tab: "profile", tag: ["a", "b"] }
+
+extractQueryFromPath("/search?active=true", { coerceBooleans: true });
+// → { active: true }
 ```
 
 ## Known Behaviours

@@ -18,11 +18,30 @@ build("/search", {}, { tags: ["admin", "moderator"] });
 // → '/search?tags=admin&tags=moderator'
 ```
 
+**Boolean values** serialize to `"true"`/`"false"`:
+
+```ts
+build("/search", {}, { active: true, draft: false });
+// → '/search?active=true&draft=false'
+```
+
 **`null` and `undefined` values are dropped**, so you can pass optional filters without conditionally building the object:
 
 ```ts
 build("/users", {}, { sort: "asc", filter: undefined });
 // → '/users?sort=asc'
+```
+
+Reading query params back out is handled by `extractQueryFromPath(path, options?)` (pass `{ coerceBooleans: true }` to turn `"true"`/`"false"` into real booleans), and appending to an existing URL by `appendQuery(path, query?, hash?)`. Both are exported from the main entry.
+
+```ts
+import { appendQuery, extractQueryFromPath } from "react-routes-forge";
+
+extractQueryFromPath("/users/42?tab=profile&tag=a&tag=b");
+// → { tab: "profile", tag: ["a", "b"] }
+
+appendQuery("/users?tab=list", { page: 2 });
+// → '/users?tab=list&page=2'
 ```
 
 ### Static Routes

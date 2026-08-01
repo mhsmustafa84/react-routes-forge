@@ -6,7 +6,7 @@ These hooks live in a separate `react-routes-forge/hooks` entry, so the core pac
 
 `useRouteParams<T>(): Record<ExtractParams<T>, string>`
 
-Typed wrapper around React Router's `useParams`. Pass the route's template string as a generic to get a correctly typed params object back.
+Typed wrapper around React Router's `useParams`. Pass the route's template string as a generic to get a correctly typed params object back — or pass a dynamic route from your `PATHS` tree and the params are inferred automatically.
 
 ```tsx
 import { useRouteParams } from "react-routes-forge/hooks";
@@ -22,6 +22,12 @@ function EditUser() {
 function Comment() {
   const { postId, commentId } =
     useRouteParams<"/posts/:postId/comments/:commentId">();
+}
+
+// Or pass a route from your PATHS tree — types are inferred:
+const PATHS = defineRoutes({ USERS: { EDIT: "/users/edit/:id" } } as const);
+function EditUserInferred() {
+  const { id } = useRouteParams(PATHS.USERS.EDIT);
 }
 ```
 
@@ -53,7 +59,7 @@ navigateTo(PATHS.USERS.ROOT, { state: { from: "settings" } });
 
 `useResolvedPath(template, params, query?, options?): string`
 
-Resolves a path template to a concrete URL string without navigating — useful for `<Link to={...} />`, preloading, or building a URL for something other than `navigate()`. Backed by React Router's `generatePath`, so it correctly supports splat (`*`) and optional (`:param?`) segments.
+Resolves a path template to a concrete URL string without navigating — useful for `<Link to={...} />`, preloading, or building a URL for something other than `navigate()`. It mirrors the library's own `buildPath`, so splat (`*`) and optional (`:param?`) segments work identically to the core API — with encoding and `strict` behaviour consistent across React Router v6 and v7.
 
 ```tsx
 import { useResolvedPath } from "react-routes-forge/hooks";
@@ -63,6 +69,10 @@ const path = useResolvedPath("/users/:id", { id: 42 });
 
 const path = useResolvedPath("/users/:id", { id: 42 }, { tab: "info" });
 // → '/users/42?tab=info'
+
+// Splat segments are preserved
+const path = useResolvedPath("/files/*", { "*": "a/b/c" });
+// → '/files/a/b/c'
 
 // Strict mode — throws RangeError instead of warning on missing params
 const path = useResolvedPath("/users/:id", {}, undefined, { strict: true });
@@ -74,4 +84,4 @@ const path = useResolvedPath("/page", {}, undefined, { hash: "section" });
 
 ### useResolvedPath vs buildPath
 
-`useResolvedPath` delegates to React Router's `generatePath` when all params are present, which correctly handles splat (`*`) segments. The library's own `buildPath`/`.build()` handles optional (`:param?`) segments identically — the segment is dropped when the param is missing. If params are missing, the hook falls back to the same `buildPath`/strict-mode behaviour — so failure modes stay consistent.
+`useResolvedPath` is a thin wrapper around the library's own `buildPath`, so splat (`*`), optional (`:param?`) and encoding behaviour are identical across every entry point. This keeps behaviour consistent across React Router v6 and v7 — v7's `generatePath` URL-encodes values itself, which would otherwise double-encode the values this library already encodes.

@@ -48,9 +48,11 @@ PATHS.USERS.DETAILS.build({ id: 42 }); // '/users/42' → use when navigating
 - **Compile-time param safety** — `.build()` is typed from the path string itself; missing or misspelled params are TypeScript errors
 - **Query string support** — built into `.build()`, no manual `URLSearchParams` wrangling
 - **Hash fragment support** — append `#hash` via the options bag
+- **Splat (`*`) segments** — supported across the entire core API, not just the hooks
+- **Route validation** — development-time warnings for missing `/`, invalid params, and duplicate paths
 - **Zero runtime dependencies** for the core API — React Router is an optional peer dependency
 - **Deep nesting** — organize routes into as many nested groups as your app needs
-- **Breadcrumbs** — automatic breadcrumb generation from your route tree
+- **Breadcrumbs** — automatic breadcrumb generation from your route tree, with per-route label overrides
 - **Separate hooks entry** — React hooks are published under `react-routes-forge/hooks`, so the core package never pulls in `react-router-dom`
 
 ## Route Types
@@ -59,6 +61,7 @@ PATHS.USERS.DETAILS.build({ id: 42 }); // '/users/42' → use when navigating
 | ----------- | ----------------------- | --------------------------------------- | ---------------------------------------------------- |
 | **Static**  | `HOME: '/'`             | Plain string primitive                  | Nothing extra — use it directly                      |
 | **Dynamic** | `DETAILS: '/users/:id'` | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames` |
+| **Splat**   | `FILES: '/files/*'`     | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames` |
 
 ## Quick Links
 

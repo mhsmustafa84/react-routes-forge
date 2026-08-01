@@ -73,6 +73,20 @@ function MyComponent() {
 }
 ```
 
+## Route Validation
+
+In development, `defineRoutes()` warns via `console.warn` about likely mistakes — a missing leading `/`, invalid param names, non-trailing splats, and duplicate path templates:
+
+```ts
+defineRoutes({
+  A: { FOO: "/foo" },
+  B: { FOO: "/foo" },
+} as const);
+// ⚠ console.warn: [route-forge] Duplicate route path "/foo" for "A.FOO" and "B.FOO".
+```
+
+These are warnings, not errors — invalid routes still build, so a broken definition can't crash your app at import time.
+
 ## What's Next?
 
 - [API Reference](/api-reference) — explore all exported functions
