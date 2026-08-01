@@ -63,6 +63,7 @@ export default defineConfig({
           { text: "Strict Mode", link: "/strict-mode" },
           { text: "Migrating from Old Patterns", link: "/migration" },
           { text: "TypeScript Support", link: "/typescript-support" },
+          { text: "Changelog", link: "/changelog" },
         ],
       },
     ],
