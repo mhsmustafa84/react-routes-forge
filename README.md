@@ -1,9 +1,11 @@
 # react-routes-forge
 
-**Type-safe route definitions with automatic path builders for React apps.**
+**Type-safe route definitions, automatic path builders, query parameter handling, and active route matching for React applications with zero duplication.**
 
-One source of truth for your routes — templates for `<Route path={...} />` and typed builders for navigation — with no duplication and no manual string concatenation.
+📖 **[Documentation](https://mhsmustafa84.github.io/react-routes-forge)** | 🚀 **[Live Demo (POC)](https://mhsmustafa84.github.io/react-routes-forge-poc)**
 
+[![Documentation](https://img.shields.io/badge/Documentation-VitePress-646cff.svg)](https://mhsmustafa84.github.io/react-routes-forge)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-POC-brightgreen.svg)](https://mhsmustafa84.github.io/react-routes-forge-poc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](#)
 [![Node.js 24+](https://img.shields.io/badge/Node.js-24+-green.svg)](#requirements)
@@ -182,32 +184,32 @@ Quick reference for everything the package exports — grouped by kind. Click th
 
 ### Route definition
 
-| Export                                               | Purpose                                                |
-| ---------------------------------------------------- | ------------------------------------------------------ |
-| [`defineRoutes(routeMap)`](#defineroutesroutemap)    | Builds the typed `PATHS` object from a nested route map |
-| `.build(params, query?, options?)`                   | On every dynamic route — resolves to a concrete URL    |
-| `.paramNames`                                        | On every dynamic route — the param names it expects    |
+| Export                                            | Purpose                                                 |
+| ------------------------------------------------- | ------------------------------------------------------- |
+| [`defineRoutes(routeMap)`](#defineroutesroutemap) | Builds the typed `PATHS` object from a nested route map |
+| `.build(params, query?, options?)`                | On every dynamic route — resolves to a concrete URL     |
+| `.paramNames`                                     | On every dynamic route — the param names it expects     |
 
 ### Utilities
 
-| Export                                                                                     | Purpose                                                |
-| ------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| [`build(template, params, query?, options?)`](#buildtemplate-params-query-options)          | Resolve a template into a URL without `defineRoutes`   |
-| [`isActivePath(currentPath, template, options?)`](#isactivepathcurrentpath-template-options)| Check if a path matches a template (nav-highlighting)  |
-| [`extractParamsFromPath(template, resolvedPath)`](#extractparamsfrompathtemplate-resolvedpath)| Pull param values back out of a resolved URL         |
-| [`matchPath(template)`](#matchpathtemplate)                                                | Convert a route template into an anchored `RegExp`     |
-| [`joinPaths(...segments)`](#joinpathssegments)                                             | Join and normalize path segments                       |
-| [`getParamNames(template)`](#getparamnamestemplate)                                        | List the `:param` names in a template                  |
-| [`flattenRoutes(routes)`](#flattenroutesroutes)                                            | Flatten a `PATHS` tree for sitemaps / duplicate detection |
-| [`getBreadcrumbs(routes, currentPath, options?)`](#getbreadcrumbsroutes-currentpath-options)| Build a breadcrumb trail from a route tree and current URL |
+| Export                                                                                         | Purpose                                                    |
+| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [`build(template, params, query?, options?)`](#buildtemplate-params-query-options)             | Resolve a template into a URL without `defineRoutes`       |
+| [`isActivePath(currentPath, template, options?)`](#isactivepathcurrentpath-template-options)   | Check if a path matches a template (nav-highlighting)      |
+| [`extractParamsFromPath(template, resolvedPath)`](#extractparamsfrompathtemplate-resolvedpath) | Pull param values back out of a resolved URL               |
+| [`matchPath(template)`](#matchpathtemplate)                                                    | Convert a route template into an anchored `RegExp`         |
+| [`joinPaths(...segments)`](#joinpathssegments)                                                 | Join and normalize path segments                           |
+| [`getParamNames(template)`](#getparamnamestemplate)                                            | List the `:param` names in a template                      |
+| [`flattenRoutes(routes)`](#flattenroutesroutes)                                                | Flatten a `PATHS` tree for sitemaps / duplicate detection  |
+| [`getBreadcrumbs(routes, currentPath, options?)`](#getbreadcrumbsroutes-currentpath-options)   | Build a breadcrumb trail from a route tree and current URL |
 
 ### React hooks
 
-| Export                                                                                     | Purpose                                                |
-| ------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| [`useRouteParams<T>()`](#useroutparamst)                                                    | Typed wrapper around React Router's `useParams`        |
-| [`useNavigateTo()`](#usenavigateto)                                                        | Typed wrapper around React Router's `useNavigate`      |
-| [`useResolvedPath(...)`](#useresolvedpathtemplate-params-query-options)                    | Resolve a template to a string without navigating      |
+| Export                                                                  | Purpose                                           |
+| ----------------------------------------------------------------------- | ------------------------------------------------- |
+| [`useRouteParams<T>()`](#useroutparamst)                                | Typed wrapper around React Router's `useParams`   |
+| [`useNavigateTo()`](#usenavigateto)                                     | Typed wrapper around React Router's `useNavigate` |
+| [`useResolvedPath(...)`](#useresolvedpathtemplate-params-query-options) | Resolve a template to a string without navigating |
 
 ---
 
@@ -237,7 +239,11 @@ const PATHS = defineRoutes({
 
 PATHS.SERVICES.ROOT; // '/services'
 PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.build({ id: 7 }); // '/services/beneficiary-care-center/edit/7'
-PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.build({ id: 7 }, { tab: "info" }, { hash: "details" }); // → '/services/beneficiary-care-center/edit/7?tab=info#details'
+PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.build(
+  { id: 7 },
+  { tab: "info" },
+  { hash: "details" },
+); // → '/services/beneficiary-care-center/edit/7?tab=info#details'
 PATHS.SERVICES.BENEFICIARY_CARE_CENTER.EDIT.paramNames; // ['id']
 ```
 
@@ -326,9 +332,9 @@ Converts a route template string into an anchored `RegExp` — useful when you n
 import { matchPath } from "react-routes-forge";
 
 const re = matchPath("/users/:id");
-re.test("/users/42");              // true
-re.exec("/users/42");              // ['/users/42', '42']
-re.test("/users/42/posts");        // false (exact match only)
+re.test("/users/42"); // true
+re.exec("/users/42"); // ['/users/42', '42']
+re.test("/users/42/posts"); // false (exact match only)
 ```
 
 This is the building block used internally by `isActivePath` and `extractParamsFromPath`.
@@ -413,6 +419,7 @@ it("has no duplicate route paths", () => {
 Walks a route tree (or a pre-flattened array from `flattenRoutes()`) and returns every route that is an ancestor of (or an exact match to) the current URL. Dynamic params in ancestor paths are automatically resolved from the matched portion of the URL. Query strings on `currentPath` are ignored.
 
 Each breadcrumb entry contains:
+
 - **`key`** — the dot-joined key from the route tree (e.g. `"USERS.EDIT"`)
 - **`label`** — a human-readable label derived from the key (e.g. `"USERS.ROOT"` → `"Users"`, `"USERS.EDIT"` → `"Edit"`)
 - **`path`** — the resolved breadcrumb path with params filled in (e.g. `"/users/edit/42"`)
@@ -447,7 +454,8 @@ getBreadcrumbs(PATHS, "/users/edit/42");
 
 ```ts
 getBreadcrumbs(PATHS, "/users/edit/42", {
-  labelResolver: (key) => key.split(".").pop()!.replace(/_/g, " ").toUpperCase(),
+  labelResolver: (key) =>
+    key.split(".").pop()!.replace(/_/g, " ").toUpperCase(),
 });
 // → [{ label: "HOME" }, { label: "ROOT" }, { label: "EDIT" }]
 ```
@@ -590,7 +598,12 @@ build("/page", {}, undefined, { hash: "section" });
 // → '/page#section'
 
 // Via useResolvedPath
-useResolvedPath("/users/:id", { id: 5 }, { tab: "billing" }, { hash: "invoice" });
+useResolvedPath(
+  "/users/:id",
+  { id: 5 },
+  { tab: "billing" },
+  { hash: "invoice" },
+);
 // → '/users/5?tab=billing#invoice'
 ```
 
