@@ -1,4 +1,4 @@
-import { buildPath, extractParamNames, flattenRoutes, isDynamic } from "./utils";
+import { buildPath, devWarn, extractParamNames, flattenRoutes, isDynamic } from "./utils";
 import type {
   BuildPathOptions,
   ExtractParams,
@@ -37,20 +37,10 @@ type ResolvedRoutes<T extends RouteInput> = {
 };
 
 const isRouteGroup = (value: unknown): value is RouteInput =>
-  typeof value === "object" && value !== null;
-
-/** Emits a console.warn in non-production environments. */
-function devWarn(message: string): void {
-  const runtimeProcess = (
-    globalThis as typeof globalThis & {
-      process?: { env?: Record<string, string | undefined> };
-    }
-  ).process;
-
-  if (runtimeProcess?.env?.NODE_ENV !== "production") {
-    console.warn(message);
-  }
-}
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  Object.getPrototypeOf(value) === Object.prototype;
 
 /**
  * Validate a single route template and warn (dev-only) about common mistakes:

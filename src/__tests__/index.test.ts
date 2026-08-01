@@ -158,6 +158,18 @@ describe("defineRoutes validation", () => {
     warn.mockRestore();
   });
 
+  it("does not treat arrays as route groups", () => {
+    const routes = defineRoutes({ GOOD: "/ok", BAD: ["/a", "/b"] } as any);
+    expect(routes.GOOD).toBe("/ok");
+    expect((routes as any).BAD).toBeUndefined();
+  });
+
+  it("does not treat class instances as route groups", () => {
+    const routes = defineRoutes({ GOOD: "/ok", BAD: new Date() } as any);
+    expect(routes.GOOD).toBe("/ok");
+    expect((routes as any).BAD).toBeUndefined();
+  });
+
   it("suppresses warnings when NODE_ENV is production", () => {
     const original = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
@@ -438,10 +450,13 @@ describe("matchPath", () => {
     expect(re.test("/users/")).toBe(false);
   });
 
-  it("returns a fresh RegExp each call (no lastIndex bleed)", () => {
+  it("caches compiled patterns per template (no lastIndex bleed)", () => {
     const re1 = matchPath("/users/:id");
     const re2 = matchPath("/users/:id");
-    expect(re1).not.toBe(re2);
+    expect(re1).toBe(re2);
+    // Non-global regexes ignore lastIndex, so repeated .test() stays correct.
+    expect(re1.test("/users/1")).toBe(true);
+    expect(re1.test("/users/2")).toBe(true);
   });
 
   it("handles regex-special characters in static path segments", () => {

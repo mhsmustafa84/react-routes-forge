@@ -16,6 +16,27 @@ const ESCAPE_RE = () => /[.*+?^${}()|[\]\\]/g;
  */
 const PARAM_SEGMENT_RE = () => /(^|\/):([A-Za-z0-9_]+)(\?)?/g;
 
+/** Returns `true` when running in a production bundle (suppresses dev warnings). */
+function isProduction(): boolean {
+  const runtimeProcess = (
+    globalThis as typeof globalThis & {
+      process?: { env?: Record<string, string | undefined> };
+    }
+  ).process;
+  return runtimeProcess?.env?.NODE_ENV === "production";
+}
+
+/**
+ * Emits a `console.warn` in non-production environments.
+ * Shared by the core utilities and `defineRoutes()` so the production check
+ * lives in one place.
+ */
+export function devWarn(message: string): void {
+  if (!isProduction()) {
+    console.warn(message);
+  }
+}
+
 function escapeRegex(value: string): string {
   return value.replace(ESCAPE_RE(), "\\$&");
 }
@@ -63,10 +84,21 @@ function isOptionalParam(template: string, name: string): boolean {
  * segment boundaries (`/users` matches `/users/42` but not `/usersettings`).
  *
  * The root template `/` is a prefix of every path.
+ *
+ * Compiled patterns are cached per template: the resulting `RegExp` has no
+ * `/g` flag, so repeated `.test()`/`.exec()` calls are side-effect free and
+ * sharing instances across callers is safe.
  */
+const PREFIX_CACHE = new Map<string, RegExp>();
+const ROOT_PREFIX_RE = /^/;
+
 function matchPrefix(template: string): RegExp {
-  if (template === "/") return /^/;
-  return new RegExp(`^${createTemplatePattern(template)}(?=/|$)`);
+  if (template === "/") return ROOT_PREFIX_RE;
+  const cached = PREFIX_CACHE.get(template);
+  if (cached !== undefined) return cached;
+  const re = new RegExp(`^${createTemplatePattern(template)}(?=/|$)`);
+  PREFIX_CACHE.set(template, re);
+  return re;
 }
 
 /** Decode a URL-encoded param value, falling back to the raw value on error. */
@@ -225,20 +257,10 @@ export function buildPath(
       );
     }
 
-    const runtimeProcess = (
-      globalThis as typeof globalThis & {
-        process?: {
-          env?: Record<string, string | undefined>;
-        };
-      }
-    ).process;
-
-    if (runtimeProcess?.env?.NODE_ENV !== "production") {
-      console.warn(
-        `[route-forge] Unresolved params in path "${resolved}". ` +
-          `Check that all :param segments have matching keys.`,
-      );
-    }
+    devWarn(
+      `[route-forge] Unresolved params in path "${resolved}". ` +
+        `Check that all :param segments have matching keys.`,
+    );
   }
 
   return appendQuery(resolved, query, options?.hash);
@@ -344,9 +366,18 @@ export function getParamNames(template: string): string[] {
  * re.test("/users/42/posts");    // false (exact match)
  * re.test("/users/42?page=1");   // true (query is part of captured value)
  * ```
+ *
+ * Compiled patterns are cached per template (the regex has no `/g` flag, so
+ * sharing instances across callers is safe).
  */
+const PATH_CACHE = new Map<string, RegExp>();
+
 export function matchPath(template: string): RegExp {
-  return new RegExp(`^${createTemplatePattern(template)}$`);
+  const cached = PATH_CACHE.get(template);
+  if (cached !== undefined) return cached;
+  const re = new RegExp(`^${createTemplatePattern(template)}$`);
+  PATH_CACHE.set(template, re);
+  return re;
 }
 
 /**

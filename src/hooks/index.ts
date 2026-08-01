@@ -3,6 +3,7 @@
  * These are thin wrappers — import only if you're using React Router.
  */
 
+import { useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import type {
   ExtractParams,
@@ -65,9 +66,12 @@ type NavigateOptions = {
 export function useNavigateTo() {
   const navigate = useNavigate();
 
-  return (path: string, options?: NavigateOptions) => {
-    navigate(path, options);
-  };
+  return useCallback(
+    (path: string, options?: NavigateOptions) => {
+      navigate(path, options);
+    },
+    [navigate],
+  );
 }
 
 // ─── useResolvedPath ─────────────────────────────────────────────────────────
