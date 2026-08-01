@@ -12,12 +12,6 @@ yarn add react-routes-forge
 bun add react-routes-forge
 ```
 
-React Router is an **optional** peer dependency — only needed if you use the bundled hooks (`useRouteParams`, `useNavigateTo`, `useResolvedPath`).
-
-```bash
-npm install react-router-dom   # only if you're using the hooks
-```
-
 > **Note:** this package ships ESM-only. See [Known Behaviours](/api-reference#known-behaviours) for details.
 
 ## Define Your Routes
@@ -73,7 +67,7 @@ function MyComponent() {
   const navigate = useNavigate();
 
   //                    ↓ Param type-checked from the template ":id"
-  navigate(PATHS.USERS.EDIT.build({ id: 42 }));       // → '/users/edit/42'
+  navigate(PATHS.USERS.EDIT.build({ id: 42 })); // → '/users/edit/42'
   navigate(PATHS.ROLES.PERMISSIONS.build({ name: "admin" })); // → '/roles/permissions/admin'
   navigate(PATHS.HOME); // → '/'  (static paths work directly)
 }
