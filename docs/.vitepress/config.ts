@@ -43,6 +43,8 @@ export default defineConfig({
           { text: "useRouteParams", link: "/hooks#userouteparams" },
           { text: "useNavigateTo", link: "/hooks#usenavigateto" },
           { text: "useResolvedPath", link: "/hooks#useresolvedpath" },
+          { text: "useActivePath", link: "/hooks#useactivepath" },
+          { text: "useTypedSearchParams", link: "/hooks#usetypedsearchparams" },
         ],
       },
       {

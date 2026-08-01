@@ -53,15 +53,17 @@ PATHS.USERS.DETAILS.build({ id: 42 }); // '/users/42' → use when navigating
 - **Zero runtime dependencies** for the core API — React Router is an optional peer dependency
 - **Deep nesting** — organize routes into as many nested groups as your app needs
 - **Breadcrumbs** — automatic breadcrumb generation from your route tree, with per-route label overrides
+- **React hooks** — `useActivePath`, `useTypedSearchParams`, `useRouteParams`, `useNavigateTo`, `useResolvedPath`
 - **Separate hooks entry** — React hooks are published under `react-routes-forge/hooks`, so the core package never pulls in `react-router-dom`
+- **ESM + CommonJS** — dual builds with proper `exports` conditions for bundlers and Node.js `require()`
 
 ## Route Types
 
-| Route type  | Example                 | Behaves as                              | Gains                                                |
-| ----------- | ----------------------- | --------------------------------------- | ---------------------------------------------------- |
-| **Static**  | `HOME: '/'`             | Plain string primitive                  | Nothing extra — use it directly                      |
-| **Dynamic** | `DETAILS: '/users/:id'` | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames` |
-| **Splat**   | `FILES: '/files/*'`     | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames` |
+| Route type  | Example                 | Behaves as                              | Gains                                                                 |
+| ----------- | ----------------------- | --------------------------------------- | --------------------------------------------------------------------- |
+| **Static**  | `HOME: '/'`             | String-like (coercible to its template) | `.build(query?, options?)` — attach query/hash, no params to fill      |
+| **Dynamic** | `DETAILS: '/users/:id'` | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`                  |
+| **Splat**   | `FILES: '/files/*'`     | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`                  |
 
 ## Quick Links
 

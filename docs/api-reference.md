@@ -6,14 +6,15 @@
 
 Creates a fully typed route object from a nested plain object.
 
-- Static paths are returned as-is — use them directly anywhere a string is expected.
+- Every path is string-coercible — use it directly anywhere a string is expected.
+- Static paths gain **`.build(query?, options?)`** — attach a query string and/or hash fragment without params.
 - Dynamic paths (containing `:param`) and splat paths (trailing `/*`) gain:
   - **`.build(params, query?, options?)`** — resolves the template into a concrete URL
   - **`.paramNames`** — array of the param names extracted from the template (a splat is reported as `['*']`)
 
 Nesting is unlimited — organize routes into as many groups and sub-groups as your app needs.
 
-> `defineRoutes()` also validates every template in development (no-op in production), warning on missing leading `/`, non-trailing `*`, and duplicate path templates. See [Route validation](/getting-started#route-validation).
+> `defineRoutes()` also validates every template in development (no-op in production), warning on missing leading `/`, non-trailing `*`, duplicate path templates, and static routes shadowed by a dynamic route defined above them. See [Route validation](/getting-started#route-validation).
 
 ```ts
 const PATHS = defineRoutes({
@@ -48,7 +49,7 @@ PATHS.SERVICES.SUPPORT_CENTER.EDIT.paramNames; // ['id']
 
 `build(template, params, query?, options?): string`
 
-Standalone path resolver — for building a URL without going through `defineRoutes`, or for adding a query string to a **static** path (which has no `.build()` of its own).
+Standalone path resolver — for building a URL without going through `defineRoutes`, or for resolving a raw template string (rather than a route from a `PATHS` tree).
 
 ```ts
 import { build } from "react-routes-forge";
@@ -142,7 +143,7 @@ extractParamsFromPath("/a/:x/b/:y", "/a/foo/b/bar");
 
 ## matchPath
 
-`matchPath(template): RegExp`
+`matchPath(template, options?): RegExp`
 
 Converts a route template string into an anchored `RegExp` — useful when you need custom matching logic beyond `isActivePath` or `extractParamsFromPath`.
 
@@ -153,6 +154,16 @@ const re = matchPath("/users/:id");
 re.test("/users/42");       // true
 re.exec("/users/42");       // ['/users/42', '42']
 re.test("/users/42/posts"); // false (exact match only)
+```
+
+**Options:**
+
+- **`end?: boolean`** (default `true`) — anchor the pattern to the end of the path. Pass `false` to match a prefix at a segment boundary (`/users` matches `/users/42` but not `/usersettings`).
+- **`caseSensitive?: boolean`** (default `false`) — match case-insensitively by default; pass `true` to opt out.
+
+```ts
+matchPath("/users/:id", { end: false }).test("/users/42/posts"); // true
+matchPath("/Users/42", { caseSensitive: true }).test("/users/42"); // false
 ```
 
 This is the building block used internally by `isActivePath` and `extractParamsFromPath`.
@@ -295,7 +306,12 @@ appendQuery("/users", { active: true });     // → '/users?active=true'
 
 `extractQueryFromPath(path, options?): QueryParams`
 
-Parses the query string out of a path (or bare query string) back into a plain object. Repeated keys become arrays; single keys are scalar strings. Pass `{ coerceBooleans: true }` to convert `"true"`/`"false"` to real booleans.
+Parses the query string out of a path (or bare query string) back into a plain object. Repeated keys become arrays; single keys are scalar strings.
+
+**Options:**
+
+- **`coerceBooleans?: boolean`** — convert the strings `"true"`/`"false"` to real booleans.
+- **`coerceNumbers?: boolean`** — convert numeric strings (`"42"`, `"3.14"`) to real numbers.
 
 ```ts
 import { extractQueryFromPath } from "react-routes-forge";
@@ -305,27 +321,28 @@ extractQueryFromPath("/users/42?tab=profile&tag=a&tag=b");
 
 extractQueryFromPath("/search?active=true", { coerceBooleans: true });
 // → { active: true }
+
+extractQueryFromPath("/search?page=2&limit=10", { coerceNumbers: true });
+// → { page: 2, limit: 10 }
 ```
 
 ## Known Behaviours
 
-### Dynamic routes are `String` objects
+### Routes are `String` objects
 
-`defineRoutes` wraps dynamic paths in `String` objects so that `.build()` and `.paramNames` can be attached as properties.
+`defineRoutes` wraps **every** path — static, dynamic, and splat — in `String` objects so that `.build()` (and `.paramNames` on dynamic routes) can be attached as properties.
 
 ```ts
 // ✓ These all work as expected
-String(PATHS.USERS.EDIT);     // '/users/edit/:id'
-`${PATHS.USERS.EDIT}`;       // '/users/edit/:id'
+String(PATHS.HOME);                  // '/'
+`${PATHS.USERS.EDIT}`;              // '/users/edit/:id'
 PATHS.USERS.EDIT == "/users/edit/:id"; // true (loose equality)
 
 // ✗ Watch out for these
-typeof PATHS.USERS.EDIT;                // 'object' ← not 'string'
-PATHS.USERS.EDIT === "/users/edit/:id"; // false ← strict equality fails
+typeof PATHS.HOME;                  // 'object' ← not 'string'
+PATHS.HOME === "/";                 // false ← strict equality fails
 ```
 
-Static routes remain genuine string primitives and are unaffected.
+### ESM + CommonJS builds
 
-### ESM-only package
-
-This package ships **ESM only** (`"type": "module"`, no `require` export condition). All modern bundlers (Vite, Webpack ≥ 5, esbuild, Rollup) handle ESM transparently.
+This package ships both **ESM and CommonJS** bundles (`dist/index.js` for ESM, `dist/index.cjs` for CJS), with `exports` conditions routing each environment to the right format. Modern bundlers use the ESM build; Node.js `require()` gets the CommonJS build automatically.

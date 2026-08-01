@@ -12,7 +12,7 @@ yarn add react-routes-forge
 bun add react-routes-forge
 ```
 
-> **Note:** this package ships ESM-only. See [Known Behaviours](/api-reference#known-behaviours) for details.
+> **Note:** this package ships dual **ESM + CommonJS** builds. See [Known Behaviours](/api-reference#known-behaviours) for details.
 
 ## Define Your Routes
 
@@ -75,7 +75,7 @@ function MyComponent() {
 
 ## Route Validation
 
-In development, `defineRoutes()` warns via `console.warn` about likely mistakes — a missing leading `/`, non-trailing splats, and duplicate path templates:
+In development, `defineRoutes()` warns via `console.warn` about likely mistakes — a missing leading `/`, non-trailing splats, duplicate path templates, and static routes shadowed by a dynamic route defined above them:
 
 ```ts
 defineRoutes({
@@ -83,9 +83,15 @@ defineRoutes({
   B: { FOO: "/foo" },
 } as const);
 // ⚠ console.warn: [route-forge] Duplicate route path "/foo" for "A.FOO" and "B.FOO".
+
+defineRoutes({
+  USERS: { DETAILS: "/users/:id", ME: "/users/me" },
+} as const);
+// ⚠ console.warn: [route-forge] Route "USERS.ME" ("/users/me") is shadowed by
+//                 dynamic route "USERS.DETAILS" ("/users/:id").
 ```
 
-These are warnings, not errors — invalid routes still build, so a broken definition can't crash your app at import time.
+These are warnings, not errors — invalid routes still build, so a broken definition can't crash your app at import time. Order matters: put static routes **before** dynamic parameter routes that could swallow them.
 
 ## What's Next?
 

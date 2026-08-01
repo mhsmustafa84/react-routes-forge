@@ -85,3 +85,62 @@ const path = useResolvedPath("/page", {}, undefined, { hash: "section" });
 ### useResolvedPath vs buildPath
 
 `useResolvedPath` is a thin wrapper around the library's own `buildPath`, so splat (`*`), optional (`:param?`) and encoding behaviour are identical across every entry point. This keeps behaviour consistent across React Router v6 and v7 — v7's `generatePath` URL-encodes values itself, which would otherwise double-encode the values this library already encodes.
+
+## useActivePath
+
+`useActivePath(template, options?): boolean`
+
+Checks whether the current location matches a route template or path — a thin wrapper around `isActivePath(useLocation().pathname, template, options)`. Matching semantics mirror React Router's `NavLink`: case-insensitive by default, trailing slashes tolerated, `exact: true` by default.
+
+| Option | Default | Description |
+| ------ | ------- | ----------- |
+| `exact` | `true` | Require a full match; pass `false` for prefix matching |
+| `caseSensitive` | `false` | Match case-sensitively |
+
+```tsx
+import { useActivePath } from "react-routes-forge/hooks";
+
+function Nav() {
+  const isUsersActive = useActivePath(PATHS.USERS.ROOT, { exact: false });
+  const isProfileActive = useActivePath("/users/:id", { caseSensitive: true });
+
+  return (
+    <Link className={isUsersActive ? "active" : ""} to={PATHS.USERS.ROOT}>
+      Users
+    </Link>
+  );
+}
+```
+
+## useTypedSearchParams
+
+`useTypedSearchParams(options?): [QueryParams, setter]`
+
+A typed wrapper around React Router's `useSearchParams`. Returns the parsed query params object (via `extractQueryFromPath`) and a setter that updates the query string.
+
+| Option | Description |
+| ------ | ----------- |
+| `coerceBooleans` | Convert `"true"`/`"false"` to real booleans |
+| `coerceNumbers` | Convert numeric strings to numbers |
+
+```tsx
+import { useTypedSearchParams } from "react-routes-forge/hooks";
+
+function Filters() {
+  const [query, setQuery] = useTypedSearchParams({
+    coerceBooleans: true,
+    coerceNumbers: true,
+  });
+
+  // query.page is a number when the URL is '/search?page=2'
+  const nextPage = (query.page ?? 0) + 1;
+
+  return (
+    <button onClick={() => setQuery({ ...query, page: nextPage })}>
+      Next page
+    </button>
+  );
+}
+```
+
+The setter accepts a `navigateOptions` second argument (`{ replace?, state? }`), passed through to React Router's `setSearchParams`.

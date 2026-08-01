@@ -32,7 +32,7 @@ build("/users", {}, { sort: "asc", filter: undefined });
 // → '/users?sort=asc'
 ```
 
-Reading query params back out is handled by `extractQueryFromPath(path, options?)` (pass `{ coerceBooleans: true }` to turn `"true"`/`"false"` into real booleans), and appending to an existing URL by `appendQuery(path, query?, hash?)`. Both are exported from the main entry.
+Reading query params back out is handled by `extractQueryFromPath(path, options?)` (pass `{ coerceBooleans: true }` to turn `"true"`/`"false"` into real booleans, `{ coerceNumbers: true }` to turn numeric strings into numbers), and appending to an existing URL by `appendQuery(path, query?, hash?)`. Both are exported from the main entry.
 
 ```ts
 import { appendQuery, extractQueryFromPath } from "react-routes-forge";
@@ -40,18 +40,25 @@ import { appendQuery, extractQueryFromPath } from "react-routes-forge";
 extractQueryFromPath("/users/42?tab=profile&tag=a&tag=b");
 // → { tab: "profile", tag: ["a", "b"] }
 
+extractQueryFromPath("/search?page=2", { coerceNumbers: true });
+// → { page: 2 }
+
 appendQuery("/users?tab=list", { page: 2 });
 // → '/users?tab=list&page=2'
 ```
 
 ### Static Routes
 
-Static routes don't have a fluent `.build()` (there's nothing to interpolate), so use the standalone `build()` util to attach a query string:
+Static routes have a fluent `.build(query?, options?)` — there are no params to interpolate, but query strings and hashes still work:
 
 ```ts
+PATHS.USERS.ROOT.build({ sort: "asc", page: 2 });
+// → '/users?sort=asc&page=2'
+
+// The standalone build() util works the same way for raw templates:
 import { build } from "react-routes-forge";
 
-build(PATHS.USERS.ROOT, {}, { sort: "asc", page: 2 });
+build("/users", {}, { sort: "asc", page: 2 });
 // → '/users?sort=asc&page=2'
 ```
 
