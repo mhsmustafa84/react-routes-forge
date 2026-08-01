@@ -3,30 +3,44 @@
  * These are thin wrappers — import only if you're using React Router.
  */
 
-import { useParams, useNavigate, generatePath } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import type {
   ExtractParams,
   QueryParams,
   RouteParams,
   BuildPathOptions,
 } from "../types";
-import { appendQuery, extractParamNames, buildPath } from "../core/utils";
+import type { DynamicRoute } from "../core/defineRoutes";
+import { buildPath } from "../core/utils";
 
 // ─── useRouteParams ──────────────────────────────────────────────────────────
 
 /**
  * A typed wrapper around React Router's `useParams`.
  *
+ * Pass a route template as a type parameter, or a dynamic route value from a
+ * `defineRoutes()` tree for automatic type inference:
+ *
  * @example
  * ```tsx
  * // Route: '/a/:x/b/:y/c/:z'
  * const { x, y, z } = useRouteParams<'/a/:x/b/:y/c/:z'>();
+ *
+ * // Or pass a route from your PATHS tree — params are inferred from it:
+ * const PATHS = defineRoutes({ USERS: { EDIT: '/users/edit/:id' } } as const);
+ * const { id } = useRouteParams(PATHS.USERS.EDIT);
  * ```
  */
 export function useRouteParams<T extends string>(): Record<
   ExtractParams<T>,
   string
-> {
+>;
+export function useRouteParams<T extends string>(
+  route: DynamicRoute<T>,
+): Record<ExtractParams<T>, string>;
+export function useRouteParams<T extends string>(
+  _route?: DynamicRoute<T>,
+): Record<ExtractParams<T>, string> {
   return useParams() as Record<ExtractParams<T>, string>;
 }
 
@@ -59,20 +73,22 @@ export function useNavigateTo() {
 // ─── useResolvedPath ─────────────────────────────────────────────────────────
 
 /**
- * Resolves a dynamic path template against params using React Router's
- * `generatePath`, with proper typing.
+ * Resolves a dynamic path template against params, mirroring `buildPath()`.
+ *
+ * This is a thin convenience wrapper around {@link buildPath} kept in the hooks
+ * entry so splat (`*`), optional (`:param?`) and encoding behaviour stay
+ * identical across React Router v6 and v7 (whose `generatePath` URL-encodes
+ * values itself, which would double-encode with this library's own encoding).
  *
  * Accepts the same `options` bag as `build()` / `buildPath()`:
  * - (default) soft-fail: `console.warn` and return the partial path with unresolved `:param` placeholders.
  * - `{ strict: true }`: throw a `RangeError` on missing params — matching `.build()`'s strict behaviour.
  *
- * When all params are present, resolution is delegated to React Router's `generatePath`,
- * which correctly handles splat (`*`) and optional (`:param?`) segments.
- *
  * @example
  * ```tsx
  * const path = useResolvedPath('/users/:id', { id: 42 }); // → '/users/42'
  * const path = useResolvedPath('/users/:id', {}, undefined, { strict: true }); // throws RangeError
+ * const path = useResolvedPath('/files/*', { "*": "a/b" }); // → '/files/a/b'
  * ```
  */
 export function useResolvedPath(
@@ -81,26 +97,5 @@ export function useResolvedPath(
   query?: QueryParams,
   options?: BuildPathOptions,
 ): string {
-  const paramNames = extractParamNames(template);
-  const hasAllParams = paramNames.every(
-    (name) => params[name] !== undefined && params[name] !== null,
-  );
-
-  if (!hasAllParams) {
-    // Let buildPath own all missing-param behaviour (warn/throw) —
-    // avoids re-implementing (and duplicating) the same check here.
-    return buildPath(template, params, query, options);
-  }
-
-  // All params present — use generatePath for correct splat / optional-segment handling.
-  const encode = options?.encode !== false;
-  const generatedParams = Object.fromEntries(
-    Object.entries(params).map(([k, v]) => [
-      k,
-      encode ? encodeURIComponent(String(v)) : String(v),
-    ]),
-  );
-  const path = generatePath(template, generatedParams);
-
-  return appendQuery(path, query, options?.hash);
+  return buildPath(template, params, query, options);
 }

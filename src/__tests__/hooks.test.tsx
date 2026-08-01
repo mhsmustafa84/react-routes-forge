@@ -9,21 +9,43 @@ import React, { type ReactNode } from "react";
 import { renderHook, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { useRouteParams, useNavigateTo, useResolvedPath } from "../hooks";
+import { defineRoutes } from "../core/defineRoutes";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Opt into the React Router v7 behaviours so the suite runs warning-free. */
+/**
+ * Opt into the React Router v7 behaviours so the suite runs warning-free.
+ * v7 made these the defaults and dropped the `future` prop from its types, so
+ * it is injected via a spread — consumed by v6, inert on v7.
+ */
 const routerFuture = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
+
+function Router({
+  children,
+  initialEntries,
+}: {
+  children: ReactNode;
+  initialEntries: string[];
+}) {
+  return (
+    <MemoryRouter
+      initialEntries={initialEntries}
+      {...({ future: routerFuture } as any)}
+    >
+      {children}
+    </MemoryRouter>
+  );
+}
 
 /** Wraps a hook in a MemoryRouter with an optional initial URL. */
 function routerWrapper(initialEntries: string[] = ["/"], routePath = "*") {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <MemoryRouter initialEntries={initialEntries} future={routerFuture}>
+      <Router initialEntries={initialEntries}>
         <Routes>
           <Route path={routePath} element={<>{children}</>} />
         </Routes>
-      </MemoryRouter>
+      </Router>
     );
   };
 }
@@ -33,11 +55,11 @@ function routerWrapper(initialEntries: string[] = ["/"], routePath = "*") {
 describe("useRouteParams", () => {
   it("returns params extracted from the current URL", () => {
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <MemoryRouter initialEntries={["/users/42"]} future={routerFuture}>
+      <Router initialEntries={["/users/42"]}>
         <Routes>
           <Route path="/users/:id" element={<>{children}</>} />
         </Routes>
-      </MemoryRouter>
+      </Router>
     );
 
     const { result } = renderHook(
@@ -50,14 +72,14 @@ describe("useRouteParams", () => {
 
   it("returns multiple params correctly", () => {
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <MemoryRouter initialEntries={["/posts/7/comments/99"]} future={routerFuture}>
+      <Router initialEntries={["/posts/7/comments/99"]}>
         <Routes>
           <Route
             path="/posts/:postId/comments/:commentId"
             element={<>{children}</>}
           />
         </Routes>
-      </MemoryRouter>
+      </Router>
     );
 
     const { result } = renderHook(
@@ -76,6 +98,26 @@ describe("useRouteParams", () => {
     );
 
     expect(result.current).toEqual({});
+  });
+
+  it("accepts a dynamic route from defineRoutes and infers its params", () => {
+    const PATHS = defineRoutes({
+      USERS: { EDIT: "/users/edit/:id" },
+    } as const);
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <Router initialEntries={["/users/edit/42"]}>
+        <Routes>
+          <Route path="/users/edit/:id" element={<>{children}</>} />
+        </Routes>
+      </Router>
+    );
+
+    const { result } = renderHook(() => useRouteParams(PATHS.USERS.EDIT), {
+      wrapper,
+    });
+
+    expect(result.current.id).toBe("42");
   });
 });
 
@@ -148,6 +190,42 @@ describe("useResolvedPath", () => {
     );
 
     expect(result.current).toBe("/posts/3/comments/17");
+  });
+
+  it("resolves a splat path, preserving slashes", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/files/*", { "*": "a/b/c" }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/files/a/b/c");
+  });
+
+  it("encodes special characters in splat segments but not slashes", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/files/*", { "*": "a b/c?d" }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/files/a%20b/c%3Fd");
+  });
+
+  it("keeps splat values raw when { encode: false }", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/files/*", { "*": "a b/c" }, undefined, { encode: false }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/files/a b/c");
+  });
+
+  it("drops the splat suffix when no splat value is given", () => {
+    const { result } = renderHook(
+      () => useResolvedPath("/files/*", {}),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/files");
   });
 
   it("appends a query string when provided", () => {
