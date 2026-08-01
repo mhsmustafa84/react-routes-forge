@@ -123,6 +123,12 @@ export type BreadcrumbItem = {
  */
 export type BreadcrumbOptions = {
   /**
+   * Static label map keyed by the dot-joined key (e.g. `"USERS.EDIT"`).
+   * Takes precedence over `labelResolver`.
+   */
+  labels?: Record<string, string>;
+
+  /**
    * Custom label resolver. Receives the dot-joined key
    * (e.g. `"USERS.BCC.EDIT"`) and returns the display label.
    *

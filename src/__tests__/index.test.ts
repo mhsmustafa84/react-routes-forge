@@ -934,6 +934,26 @@ describe("getBreadcrumbs", () => {
     expect(crumbs[2].label).toBe("USERS.EDIT");
   });
 
+  it("uses the labels map for matching keys", () => {
+    const crumbs = getBreadcrumbs(PATHS, "/users/edit/42", {
+      labels: { "USERS.ROOT": "Members", "USERS.EDIT": "Edit member" },
+    });
+
+    expect(crumbs[0].label).toBe("Home");
+    expect(crumbs[1].label).toBe("Members");
+    expect(crumbs[2].label).toBe("Edit member");
+  });
+
+  it("labels map takes precedence over labelResolver", () => {
+    const crumbs = getBreadcrumbs(PATHS, "/users/edit/42", {
+      labels: { HOME: "Start" },
+      labelResolver: (key) => key.toLowerCase(),
+    });
+
+    expect(crumbs[0].label).toBe("Start");
+    expect(crumbs[1].label).toBe("USERS.ROOT".toLowerCase());
+  });
+
   it("returns empty array when no routes match", () => {
     const crumbs = getBreadcrumbs(PATHS, "/nonexistent");
     expect(crumbs).toHaveLength(1);

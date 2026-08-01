@@ -439,6 +439,7 @@ export function getBreadcrumbs(
     : flattenRoutes(routes);
   const pathname = currentPath.split("?")[0] ?? "";
   const labelFn = options?.labelResolver ?? deriveBreadcrumbLabel;
+  const labels = options?.labels ?? {};
 
   const items: Array<{
     key: string;
@@ -487,7 +488,7 @@ export function getBreadcrumbs(
 
   return items.map((item) => ({
     key: item.key,
-    label: labelFn(item.key),
+    label: labels[item.key] ?? labelFn(item.key),
     path: item.resolvedPath,
     isCurrent: item.isCurrent,
   }));
