@@ -51,7 +51,11 @@ export type NavigateOptions = {
 
 /**
  * A typed `navigate` helper that accepts a resolved path (output of `.build()`)
- * or a plain static path, with optional navigation options.
+ * or a route value straight from `defineRoutes()` (e.g. a `String` object or a
+ * primitive string), with optional navigation options.
+ *
+ * `String` objects (used by route values so they can carry `.build()`) are
+ * coerced to primitives, since React Router's `navigate()` ignores them.
  *
  * @example
  * ```tsx
@@ -65,7 +69,7 @@ export function useNavigateTo() {
 
   return useCallback(
     (path: string, options?: NavigateOptions) => {
-      navigate(path, options);
+      navigate(String(path), options);
     },
     [navigate],
   );

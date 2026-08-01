@@ -7,7 +7,7 @@
 import { describe, it, expect, vi } from "vitest";
 import React, { type ReactNode } from "react";
 import { renderHook, act } from "@testing-library/react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import {
   useRouteParams,
   useNavigateTo,
@@ -179,6 +179,33 @@ describe("useNavigateTo", () => {
         result.current("/home", { state: { from: "test" } });
       });
     }).not.toThrow();
+  });
+
+  it("navigates when passed a String object route value", () => {
+    // defineRoutes() wraps routes as String objects; React Router's navigate()
+    // ignores them, so useNavigateTo must coerce to a primitive.
+    const PATHS = defineRoutes({ HOME: "/", USERS: { ROOT: "/users" } } as const);
+
+    const hook = renderHook(
+      () => {
+        const navigateTo = useNavigateTo();
+        const location = useLocation();
+        return { navigateTo, pathname: location.pathname };
+      },
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <Router initialEntries={["/start"]}>{children}</Router>
+        ),
+      },
+    );
+
+    expect(hook.result.current.pathname).toBe("/start");
+
+    act(() => {
+      hook.result.current.navigateTo(PATHS.USERS.ROOT as unknown as string);
+    });
+
+    expect(hook.result.current.pathname).toBe("/users");
   });
 });
 
