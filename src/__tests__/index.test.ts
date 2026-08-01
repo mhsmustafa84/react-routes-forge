@@ -148,6 +148,10 @@ describe("extractParamNames", () => {
   it("returns empty array for static paths", () => {
     expect(extractParamNames("/users")).toEqual([]);
   });
+
+  it("ignores literal colons inside a segment", () => {
+    expect(extractParamNames("/users/foo:bar")).toEqual([]);
+  });
 });
 
 // ─── isDynamic ───────────────────────────────────────────────────────────────
@@ -159,6 +163,10 @@ describe("isDynamic", () => {
 
   it("returns false for static paths", () => {
     expect(isDynamic("/users")).toBe(false);
+  });
+
+  it("returns false for literal colons inside a segment", () => {
+    expect(isDynamic("/users/foo:bar")).toBe(false);
   });
 });
 
@@ -183,6 +191,13 @@ describe("isActivePath", () => {
     expect(isActivePath("/users", "/users")).toBe(true);
     expect(isActivePath("/users/extra", "/users")).toBe(false);
   });
+
+  it("does not treat similar-prefix paths as matches", () => {
+    expect(isActivePath("/usersettings", "/users", { exact: false })).toBe(
+      false,
+    );
+    expect(isActivePath("/users-edit", "/users", { exact: false })).toBe(false);
+  });
 });
 
 // ─── extractParamsFromPath ───────────────────────────────────────────────────
@@ -205,6 +220,12 @@ describe("extractParamsFromPath", () => {
 
   it("returns empty object when path does not match", () => {
     expect(extractParamsFromPath("/users/:id", "/roles/42")).toEqual({});
+  });
+
+  it("decodes URL-encoded params back to their original values", () => {
+    expect(extractParamsFromPath("/search/:query", "/search/a%2Fb")).toEqual({
+      query: "a/b",
+    });
   });
 });
 
@@ -258,6 +279,13 @@ describe("matchPath", () => {
   it("works with optional param templates", () => {
     const re = matchPath("/users/:id?");
     expect(re.test("/users/42")).toBe(true);
+    expect(re.test("/users")).toBe(true);
+  });
+
+  it("matches paths with optional params in the middle", () => {
+    const re = matchPath("/users/:id?/posts/:postId");
+    expect(re.test("/users/7/posts/1")).toBe(true);
+    expect(re.test("/users/posts/1")).toBe(true);
   });
 
   it("does not match non-matching paths", () => {
@@ -493,21 +521,21 @@ describe("optional param segments (:param?)", () => {
     expect(buildPath("/users/:id?", { id: 42 })).toBe("/users/42");
   });
 
-  it("buildPath leaves :param placeholder when optional param is missing", () => {
-    expect(buildPath("/users/:id?", {})).toBe("/users/:id");
+  it("buildPath drops the segment when an optional param is missing", () => {
+    expect(buildPath("/users/:id?", {})).toBe("/users");
   });
 
-  it("buildPath warns when optional param is missing (same warning as required)", () => {
+  it("buildPath does not warn when an optional param is missing", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     buildPath("/users/:id?", {});
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Unresolved params"));
+    expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 
-  it("buildPath throws in strict mode when optional param is missing", () => {
-    expect(() =>
-      buildPath("/users/:id?", {}, undefined, { strict: true }),
-    ).toThrowError(RangeError);
+  it("buildPath does not throw in strict mode when an optional param is missing", () => {
+    expect(buildPath("/users/:id?", {}, undefined, { strict: true })).toBe(
+      "/users",
+    );
   });
 
   it("isDynamic returns true for paths with optional params", () => {
@@ -543,13 +571,13 @@ describe("buildPath strict mode", () => {
   it("includes the param name in the error message", () => {
     expect(() =>
       buildPath("/users/:id", {}, undefined, { strict: true }),
-    ).toThrowError(/\":id\"/);
+    ).toThrowError(/":id"/);
   });
 
   it("throws with multiple missing params listed", () => {
     expect(() =>
       buildPath("/a/:x/b/:y", {}, undefined, { strict: true }),
-    ).toThrowError(/\":x\".*\":y\"/);
+    ).toThrowError(/":x".*":y"/);
   });
 
   it("does not throw when all params are supplied", () => {
@@ -577,10 +605,32 @@ describe("buildPath strict mode", () => {
     warn.mockRestore();
   });
 
+  it("URL-encodes parameter values by default", () => {
+    expect(buildPath("/search/:query", { query: "a:b" })).toBe(
+      "/search/a%3Ab",
+    );
+    expect(buildPath("/search/:query", { query: "a/b" })).toBe(
+      "/search/a%2Fb",
+    );
+  });
+
+  it("keeps parameter values raw when { encode: false }", () => {
+    expect(
+      buildPath("/search/:query", { query: "a:b" }, undefined, {
+        encode: false,
+      }),
+    ).toBe("/search/a:b");
+  });
+
   it("handles parameter values containing colons without throwing or warning", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const path = buildPath("/search/:query", { query: "a:b" }, undefined, { strict: true });
-    expect(path).toBe("/search/a:b");
+    const path = buildPath(
+      "/search/:query",
+      { query: "a:b" },
+      undefined,
+      { strict: true },
+    );
+    expect(path).toBe("/search/a%3Ab");
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
@@ -686,6 +736,11 @@ describe("getBreadcrumbs", () => {
     const crumbs = getBreadcrumbs(PATHS, "/nonexistent");
     expect(crumbs).toHaveLength(1);
     expect(crumbs[0].key).toBe("HOME");
+  });
+
+  it("does not treat similar-prefix paths as ancestors", () => {
+    const crumbs = getBreadcrumbs(PATHS, "/usersettings");
+    expect(crumbs.map((c) => c.key)).toEqual(["HOME"]);
   });
 });
 

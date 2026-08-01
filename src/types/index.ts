@@ -75,6 +75,13 @@ export type BuildPathOptions = {
    */
   strict?: boolean;
   /**
+   * When `false`, param values are substituted verbatim instead of being
+   * URL-encoded. Defaults to `true` — param values are run through
+   * `encodeURIComponent` so characters like `/`, `?`, `#` cannot break the
+   * URL structure.
+   */
+  encode?: boolean;
+  /**
    * URL hash fragment to append after the query string (e.g. `"section"` → `#section`).
    * The leading `#` is added automatically.
    */

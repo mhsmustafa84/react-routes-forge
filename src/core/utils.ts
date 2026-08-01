@@ -1,15 +1,75 @@
 import type { BreadcrumbItem, BreadcrumbOptions, QueryParams, RouteParam, RouteParams, BuildPathOptions, FlatRoute } from "../types";
 
 /** Returns a fresh RegExp each call — avoids shared `lastIndex` state on /g patterns. */
-const PATH_PARAM_RE = () => /:([^/]+)/g;
 const ESCAPE_RE = () => /[.*+?^${}()|[\]\\]/g;
+
+/**
+ * Matches a `:param` token that starts a URL segment.
+ *
+ * A param is only recognized when its `:` sits at the very start of the
+ * template or is immediately preceded by `/`, so a literal colon inside a
+ * segment (e.g. `/users/foo:bar`) is not treated as a param. The optional `?`
+ * marker (`:param?`) is captured separately so it can be handled as a
+ * whole-segment modifier.
+ */
+const PARAM_SEGMENT_RE = () => /(^|\/):([^/]+?)(\?)?(?=\/|$)/g;
 
 function escapeRegex(value: string): string {
   return value.replace(ESCAPE_RE(), "\\$&");
 }
 
+/**
+ * Convert a route template into an unanchored `RegExp` source string.
+ *
+ * - Required `:name` segments become a capturing group `([^/]+)`.
+ * - Optional `:name?` segments become `(?:([^/]+))?` — the whole segment is
+ *   optional, matching React Router semantics.
+ * - Everything else is regex-escaped literally.
+ */
 function createTemplatePattern(template: string): string {
-  return escapeRegex(template).replace(PATH_PARAM_RE(), "([^/]+)");
+  let pattern = "";
+  let cursor = 0;
+
+  for (const match of template.matchAll(PARAM_SEGMENT_RE())) {
+    const start = match.index ?? 0;
+    const token = match[0];
+
+    pattern += escapeRegex(template.slice(cursor, start));
+
+    const [, boundary = "", , optional] = match;
+    pattern += optional
+      ? `(?:${escapeRegex(boundary)}([^/]+))?`
+      : `${escapeRegex(boundary)}([^/]+)`;
+
+    cursor = start + (token?.length ?? 0);
+  }
+
+  return pattern + escapeRegex(template.slice(cursor));
+}
+
+/** Returns `true` when `name` is an optional (`:name?`) param in `template`. */
+function isOptionalParam(template: string, name: string): boolean {
+  return new RegExp(`:${escapeRegex(name)}\\?(?=/|$)`).test(template);
+}
+
+/**
+ * Returns a `RegExp` that matches `template` as a path prefix, honoring
+ * segment boundaries (`/users` matches `/users/42` but not `/usersettings`).
+ *
+ * The root template `/` is a prefix of every path.
+ */
+function matchPrefix(template: string): RegExp {
+  if (template === "/") return /^/;
+  return new RegExp(`^${createTemplatePattern(template)}(?=/|$)`);
+}
+
+/** Decode a URL-encoded param value, falling back to the raw value on error. */
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 export function appendQuery(path: string, query?: QueryParams, hash?: string): string {
@@ -49,16 +109,29 @@ export function buildPath(
 ): string {
   const paramNames = extractParamNames(template);
   const unresolved = paramNames.filter(
-    (name) => params[name] === undefined || params[name] === null,
+    (name) =>
+      (params[name] === undefined || params[name] === null) &&
+      !isOptionalParam(template, name),
   );
 
   const resolved = paramNames.reduce((path, name) => {
     const value = params[name];
-    const replacement = value === undefined || value === null ? `:${name}` : String(value);
-    return path.replace(
-      new RegExp(`:${escapeRegex(name)}\\??(?=/|$)`, "g"),
-      replacement,
-    );
+    const missing = value === undefined || value === null;
+    const re = new RegExp(`(^|/):${escapeRegex(name)}\\??(?=/|$)`, "g");
+
+    return path.replace(re, (match, boundary) => {
+      if (missing) {
+        // Optional segment: drop the whole `/segment`. Required: keep the
+        // `:name` placeholder so strict mode can report it.
+        return match.endsWith("?") ? "" : `${boundary}:${name}`;
+      }
+
+      const encoded =
+        options?.encode === false
+          ? String(value)
+          : encodeURIComponent(String(value));
+      return `${boundary}${encoded}`;
+    });
   }, template);
 
   if (unresolved.length > 0) {
@@ -88,13 +161,13 @@ export function buildPath(
 }
 
 export function extractParamNames(template: string): string[] {
-  return [...template.matchAll(PATH_PARAM_RE())].map(
-    (match) => (match[1] as string).replace(/\?$/, ""),
+  return [...template.matchAll(PARAM_SEGMENT_RE())].map(
+    (match) => match[2] as string,
   );
 }
 
 export function isDynamic(path: string): boolean {
-  return PATH_PARAM_RE().test(path);
+  return PARAM_SEGMENT_RE().test(path);
 }
 
 export function isActivePath(
@@ -105,7 +178,7 @@ export function isActivePath(
   const pathWithoutSearch = currentPath.split("?")[0] ?? "";
   const regex = options.exact
     ? matchPath(template)
-    : new RegExp(`^${createTemplatePattern(template)}`);
+    : matchPrefix(template);
 
   return regex.test(pathWithoutSearch);
 }
@@ -121,7 +194,10 @@ export function extractParamsFromPath(
   if (!match) return {};
 
   return Object.fromEntries(
-    paramNames.map((name, index) => [name, match[index + 1] ?? ""]),
+    paramNames.map((name, index) => [
+      name,
+      safeDecode(match[index + 1] ?? ""),
+    ]),
   );
 }
 
@@ -296,7 +372,7 @@ export function getBreadcrumbs(
       continue;
     }
 
-    const prefixRe = new RegExp(`^${createTemplatePattern(route.path)}`);
+    const prefixRe = matchPrefix(route.path);
     const prefixMatch = pathname.match(prefixRe);
 
     if (prefixMatch) {

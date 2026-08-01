@@ -6,7 +6,7 @@ on:
       - master
     paths:
       - "docs/**"
-      - ".github/workflows/main.yml"
+      - ".github/workflows/docs.yml"
   workflow_dispatch:
 
 permissions:

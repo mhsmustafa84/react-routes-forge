@@ -93,10 +93,14 @@ export function useResolvedPath(
   }
 
   // All params present — use generatePath for correct splat / optional-segment handling.
-  const path = generatePath(
-    template,
-    Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
+  const encode = options?.encode !== false;
+  const generatedParams = Object.fromEntries(
+    Object.entries(params).map(([k, v]) => [
+      k,
+      encode ? encodeURIComponent(String(v)) : String(v),
+    ]),
   );
+  const path = generatePath(template, generatedParams);
 
   return appendQuery(path, query, options?.hash);
 }

@@ -12,11 +12,14 @@ import { useRouteParams, useNavigateTo, useResolvedPath } from "../hooks";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+/** Opt into the React Router v7 behaviours so the suite runs warning-free. */
+const routerFuture = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
+
 /** Wraps a hook in a MemoryRouter with an optional initial URL. */
 function routerWrapper(initialEntries: string[] = ["/"], routePath = "*") {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <MemoryRouter initialEntries={initialEntries}>
+      <MemoryRouter initialEntries={initialEntries} future={routerFuture}>
         <Routes>
           <Route path={routePath} element={<>{children}</>} />
         </Routes>
@@ -30,7 +33,7 @@ function routerWrapper(initialEntries: string[] = ["/"], routePath = "*") {
 describe("useRouteParams", () => {
   it("returns params extracted from the current URL", () => {
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <MemoryRouter initialEntries={["/users/42"]}>
+      <MemoryRouter initialEntries={["/users/42"]} future={routerFuture}>
         <Routes>
           <Route path="/users/:id" element={<>{children}</>} />
         </Routes>
@@ -47,7 +50,7 @@ describe("useRouteParams", () => {
 
   it("returns multiple params correctly", () => {
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <MemoryRouter initialEntries={["/posts/7/comments/99"]}>
+      <MemoryRouter initialEntries={["/posts/7/comments/99"]} future={routerFuture}>
         <Routes>
           <Route
             path="/posts/:postId/comments/:commentId"
@@ -220,9 +223,25 @@ describe("useResolvedPath", () => {
     expect(result.current).toBe("/users/1");
   });
 
-  it("handles parameter values containing colons without throwing", () => {
+  it("URL-encodes parameter values by default", () => {
     const { result } = renderHook(
-      () => useResolvedPath("/search/:query", { query: "a:b" }, undefined, { strict: true }),
+      () =>
+        useResolvedPath("/search/:query", { query: "a:b" }, undefined, {
+          strict: true,
+        }),
+      { wrapper: routerWrapper() },
+    );
+
+    expect(result.current).toBe("/search/a%3Ab");
+  });
+
+  it("keeps parameter values raw when { encode: false }", () => {
+    const { result } = renderHook(
+      () =>
+        useResolvedPath("/search/:query", { query: "a:b" }, undefined, {
+          strict: true,
+          encode: false,
+        }),
       { wrapper: routerWrapper() },
     );
 
