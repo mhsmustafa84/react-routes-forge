@@ -85,10 +85,14 @@
   },
   "peerDependencies": {
     "react": ">=17",
-    "react-router-dom": ">=6"
+    "react-router-dom": ">=6",
+    "react-router": ">=6"
   },
   "peerDependenciesMeta": {
     "react-router-dom": {
+      "optional": true
+    },
+    "react-router": {
       "optional": true
     }
   },

@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         node: ["18", "20", "22", "24"]
-        rr: ["6", "7"]
+        rr: ["6", "7", "7-dom"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,9 +33,15 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - name: Install React Router v${{ matrix.rr }}
-        if: matrix.rr != '6'
-        run: bun add -D react-router-dom@${{ matrix.rr }}
+      - name: Install React Router v7 (core only, no react-router-dom)
+        if: matrix.rr == '7'
+        run: |
+          bun remove react-router-dom
+          bun remove react-router
+          bun add -D react-router@7
+      - name: Install react-router-dom v7
+        if: matrix.rr == '7-dom'
+        run: bun add -D react-router-dom@7
       - run: bun run lint
       - run: bun run test
       - name: Build

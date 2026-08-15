@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router";
 import type {
   ExtractParams,
   QueryParams,
@@ -128,6 +128,12 @@ export function useActivePath(
  * A typed wrapper around React Router's `useSearchParams`.
  * Returns parsed query params object and a setter that updates query params.
  *
+ * Implemented on top of `useLocation` + `useNavigate` (both exported by the
+ * `react-router` core in v6 and v7) rather than `useSearchParams`, because in
+ * React Router v6 `useSearchParams` only exists in the DOM wrapper package
+ * (`react-router-dom`), while v7 moved it into `react-router`. Reimplementing
+ * it lets the whole hooks entry work identically against both packages.
+ *
  * @example
  * ```tsx
  * const [query, setQuery] = useTypedSearchParams({ coerceBooleans: true, coerceNumbers: true });
@@ -138,13 +144,10 @@ export function useTypedSearchParams(options?: {
   coerceBooleans?: boolean;
   coerceNumbers?: boolean;
 }) {
-  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const queryParams = extractQueryFromPath(
-    `${location.pathname}?${searchParams.toString()}`,
-    options,
-  );
+  const queryParams = extractQueryFromPath(location.search, options);
 
   const setTypedQuery = useCallback(
     (
@@ -155,9 +158,9 @@ export function useTypedSearchParams(options?: {
       const updatedSearchParams = new URLSearchParams(
         updatedPath.startsWith("?") ? updatedPath.slice(1) : updatedPath,
       );
-      setSearchParams(updatedSearchParams, navigateOptions);
+      navigate(`?${updatedSearchParams.toString()}`, navigateOptions);
     },
-    [setSearchParams],
+    [navigate],
   );
 
   return [queryParams, setTypedQuery] as const;

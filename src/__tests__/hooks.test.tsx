@@ -7,7 +7,7 @@
 import { describe, it, expect, vi } from "vitest";
 import React, { type ReactNode } from "react";
 import { renderHook, act } from "@testing-library/react";
-import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
+import { MemoryRouter, Routes, Route, useLocation } from "react-router";
 import {
   useRouteParams,
   useNavigateTo,
