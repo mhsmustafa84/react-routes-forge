@@ -5,6 +5,7 @@ import {
   flattenRoutes,
   isActivePath,
   isDynamic,
+  isProduction,
 } from "./utils";
 import type {
   BuildPathOptions,
@@ -28,13 +29,18 @@ export type StaticRoute<T extends string> = T & {
   build(query?: QueryParams, options?: BuildPathOptions): RoutePath;
 };
 
-export type DynamicRoute<T extends string> =
-  T extends `${string}:${string}` | `${string}/*`
-    ? T & {
-        build(params: PathParams<T>, query?: QueryParams, options?: BuildPathOptions): RoutePath;
-        paramNames: Array<ExtractParams<T>>;
-      }
-    : StaticRoute<T>;
+export type DynamicRoute<T extends string> = T extends
+  | `${string}:${string}`
+  | `${string}/*`
+  ? T & {
+      build(
+        params: PathParams<T>,
+        query?: QueryParams,
+        options?: BuildPathOptions,
+      ): RoutePath;
+      paramNames: Array<ExtractParams<T>>;
+    }
+  : StaticRoute<T>;
 
 type ResolvedRoutes<T extends RouteTree> = {
   [K in keyof T]: T[K] extends RouteTree
@@ -124,12 +130,19 @@ function wrapStaticPath<T extends string>(template: T): StaticRoute<T> {
 function wrapDynamicPath<T extends string>(template: T): DynamicRoute<T> {
   const paramNames = extractParamNames(template);
   const wrapped = new String(template) as unknown as DynamicRoute<T> & {
-    build: (params: PathParams<T>, query?: QueryParams, options?: BuildPathOptions) => RoutePath;
+    build: (
+      params: PathParams<T>,
+      query?: QueryParams,
+      options?: BuildPathOptions,
+    ) => RoutePath;
     paramNames: Array<ExtractParams<T>>;
   };
 
-  wrapped.build = (params: PathParams<T>, query?: QueryParams, options?: BuildPathOptions) =>
-    buildPath(template, params, query, options) as RoutePath;
+  wrapped.build = (
+    params: PathParams<T>,
+    query?: QueryParams,
+    options?: BuildPathOptions,
+  ) => buildPath(template, params, query, options) as RoutePath;
   wrapped.paramNames = paramNames as Array<ExtractParams<T>>;
 
   return wrapped as unknown as DynamicRoute<T>;
@@ -162,6 +175,11 @@ export function defineRoutes<T extends RouteTree>(
   routes: T,
 ): ResolvedRoutes<T> {
   const result = processRouteMap(routes);
-  detectDuplicatePaths(result as unknown as Record<string, unknown>);
+  // detectDuplicatePaths only ever produces console.warn output (suppressed
+  // in production by devWarn), so skip the O(n^2) walk entirely in
+  // production rather than computing it and discarding the result.
+  if (!isProduction()) {
+    detectDuplicatePaths(result as unknown as Record<string, unknown>);
+  }
   return result;
 }

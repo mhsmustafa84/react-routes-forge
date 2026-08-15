@@ -24,7 +24,7 @@ const ESCAPE_RE = () => /[.*+?^${}()|[\]\\]/g;
 const PARAM_SEGMENT_RE = () => /(^|\/):([A-Za-z0-9_]+)(\?)?/g;
 
 /** Returns `true` when running in a production bundle (suppresses dev warnings). */
-function isProduction(): boolean {
+export function isProduction(): boolean {
   const runtimeProcess = (
     globalThis as typeof globalThis & {
       process?: { env?: Record<string, string | undefined> };
