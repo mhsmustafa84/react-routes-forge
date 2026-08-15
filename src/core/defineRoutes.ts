@@ -1,12 +1,8 @@
-import {
-  buildPath,
-  devWarn,
-  extractParamNames,
-  flattenRoutes,
-  isActivePath,
-  isDynamic,
-  isProduction,
-} from "./utils";
+import { devWarn, isProduction } from "./environment";
+import { buildPath } from "./build";
+import { extractParamNames, isDynamic } from "./params";
+import { isActivePath } from "./match";
+import { flattenRoutes } from "./routes";
 import type {
   BuildPathOptions,
   ExtractParams,
@@ -17,7 +13,8 @@ import type {
 } from "../types";
 
 // Re-export so consumers that import from 'core/defineRoutes' get the full surface
-export { buildPath, extractParamNames, isDynamic } from "./utils";
+export { buildPath } from "./build";
+export { extractParamNames, isDynamic } from "./params";
 
 /**
  * A dynamic route is a template string with a `:param` or trailing `/*` splat,

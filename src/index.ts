@@ -1,6 +1,29 @@
 // Core
 export { defineRoutes } from "./core/defineRoutes";
-export { appendQuery, buildPath, extractParamNames, extractQueryFromPath, isDynamic } from "./core/utils";
+export type { StaticRoute, DynamicRoute } from "./core/defineRoutes";
+
+// Path building
+export { buildPath, build, joinPaths } from "./core/build";
+export {
+  extractParamNames,
+  extractParamsFromPath,
+  getParamNames,
+  isDynamic,
+} from "./core/params";
+
+// Matching
+export { isActivePath } from "./core/match";
+export { matchPath } from "./core/pattern";
+
+// Query strings & hashes
+export { appendQuery, extractQueryFromPath } from "./core/query";
+
+// Route trees
+export { flattenRoutes, getBreadcrumbs } from "./core/routes";
+
+// Environment
+export { devWarn } from "./core/environment";
+export { clearPathCache } from "./core/pattern";
 
 // Types
 export type {
@@ -20,18 +43,3 @@ export type {
   BreadcrumbOptions,
   MatchPathOptions,
 } from "./types";
-export type { StaticRoute, DynamicRoute } from "./core/defineRoutes";
-
-// Utilities
-export {
-  isActivePath,
-  extractParamsFromPath,
-  matchPath,
-  joinPaths,
-  build,
-  getParamNames,
-  flattenRoutes,
-  getBreadcrumbs,
-  devWarn,
-  clearPathCache,
-} from "./core/utils";
