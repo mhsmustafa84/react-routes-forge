@@ -87,7 +87,9 @@ function createTemplatePattern(template: string): string {
     cursor = start + (token?.length ?? 0);
   }
 
-  return pattern + escapeRegex(base.slice(cursor)) + (splat ? "(?:/(.*))?" : "");
+  return (
+    pattern + escapeRegex(base.slice(cursor)) + (splat ? "(?:/(.*))?" : "")
+  );
 }
 
 /** Returns `true` when `name` is an optional (`:name?`) param in `template`. */
@@ -140,7 +142,11 @@ function safeDecode(value: string): string {
  * appendQuery("/users#top", { tab: "list" });  // → "/users?tab=list#top"
  * ```
  */
-export function appendQuery(path: string, query?: QueryParams, hash?: string): string {
+export function appendQuery(
+  path: string,
+  query?: QueryParams,
+  hash?: string,
+): string {
   const hashIdx = path.indexOf("#");
   const base = hashIdx === -1 ? path : path.slice(0, hashIdx);
   const existingHash = hashIdx === -1 ? "" : path.slice(hashIdx + 1);
@@ -151,7 +157,8 @@ export function appendQuery(path: string, query?: QueryParams, hash?: string): s
       if (value === undefined || value === null) continue;
       if (Array.isArray(value)) {
         value.forEach((v) => {
-          if (v !== undefined && v !== null) searchParams.append(key, String(v));
+          if (v !== undefined && v !== null)
+            searchParams.append(key, String(v));
         });
       } else {
         searchParams.append(key, String(value));
@@ -312,18 +319,24 @@ export function isDynamic(path: string): boolean {
 export function isActivePath(
   currentPath: string,
   template: string,
-  options: { exact?: boolean; caseSensitive?: boolean } = {
-    exact: true,
-    caseSensitive: false,
-  },
+  options: { exact?: boolean; caseSensitive?: boolean } = {},
 ): boolean {
+  // NOTE: default each property individually rather than relying on a
+  // default *object* for `options` — JS default parameters only apply when
+  // the whole argument is omitted, so `isActivePath(a, b, { caseSensitive: true })`
+  // would otherwise silently lose the documented `exact: true` default.
+  const exact = options.exact ?? true;
+  const caseSensitive = options.caseSensitive ?? false;
+
   const pathname = (currentPath.split("?")[0] ?? "").replace(/\/+$/, "") || "/";
   const normalizedTemplate = template.replace(/\/+$/, "") || "/";
-  const target = options.caseSensitive
+  const target = caseSensitive
     ? normalizedTemplate
     : normalizedTemplate.toLowerCase();
-  const candidate = options.caseSensitive ? pathname : pathname.toLowerCase();
-  const regex = options.exact ? matchPath(target) : matchPrefix(target);
+  const candidate = caseSensitive ? pathname : pathname.toLowerCase();
+  const regex = exact
+    ? matchPath(target, { caseSensitive })
+    : matchPrefix(target);
 
   return regex.test(candidate);
 }
@@ -446,9 +459,7 @@ export function flattenRoutes(
       entries.push({ key: fullKey, path: value.valueOf() });
     } else if (typeof value === "object" && value !== null) {
       // Nested route group — recurse.
-      entries.push(
-        ...flattenRoutes(value as Record<string, unknown>, fullKey),
-      );
+      entries.push(...flattenRoutes(value as Record<string, unknown>, fullKey));
     }
     // Anything else (functions, numbers, …) is silently skipped.
   }
@@ -461,7 +472,8 @@ function deriveBreadcrumbLabel(key: string): string {
   const last = parts[parts.length - 1] ?? key;
   // Use the parent segment when the leaf is the conventional "ROOT" key,
   // so USERS.ROOT → "Users" rather than "Root".
-  const raw = last === "ROOT" && parts.length > 1 ? parts[parts.length - 2]! : last;
+  const raw =
+    last === "ROOT" && parts.length > 1 ? parts[parts.length - 2]! : last;
   return raw
     .replace(/_/g, " ")
     .toLowerCase()
@@ -505,9 +517,7 @@ export function getBreadcrumbs(
   currentPath: string,
   options?: BreadcrumbOptions,
 ): BreadcrumbItem[] {
-  const flat = Array.isArray(routes)
-    ? routes
-    : flattenRoutes(routes);
+  const flat = Array.isArray(routes) ? routes : flattenRoutes(routes);
   const pathname = currentPath.split("?")[0] ?? "";
   const labelFn = options?.labelResolver ?? deriveBreadcrumbLabel;
   const labels = options?.labels ?? {};
@@ -555,7 +565,12 @@ export function getBreadcrumbs(
     }
   }
 
-  items.sort((a, b) => a.template.length - b.template.length);
+  // Sort by path depth (segment count), not raw string length — a shallow
+  // route with a long param name (e.g. "/shop/:reallyLongSlugName") must
+  // still sort before a deeper route with short segments (e.g.
+  // "/shop/widgets/details"), even though the latter has fewer characters.
+  const segmentCount = (t: string) => t.split("/").filter(Boolean).length;
+  items.sort((a, b) => segmentCount(a.template) - segmentCount(b.template));
 
   return items.map((item) => ({
     key: item.key,
@@ -564,4 +579,3 @@ export function getBreadcrumbs(
     isCurrent: item.isCurrent,
   }));
 }
-

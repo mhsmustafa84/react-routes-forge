@@ -6,7 +6,12 @@ import type {
   RouteParams,
   BuildPathOptions,
 } from "../types";
-import { buildPath, isActivePath, extractQueryFromPath, appendQuery } from "../core/utils";
+import {
+  buildPath,
+  isActivePath,
+  extractQueryFromPath,
+  appendQuery,
+} from "../core/utils";
 
 // ─── useRouteParams ──────────────────────────────────────────────────────────
 
@@ -32,13 +37,13 @@ export function useRouteParams<T extends string = string>(): Record<
   string
 >;
 // Overload 2: pass a route from defineRoutes() — P is inferred from paramNames array element type
-export function useRouteParams<P extends string>(
-  route: { readonly paramNames: ReadonlyArray<P> | Array<P> },
-): Record<P, string>;
+export function useRouteParams<P extends string>(route: {
+  readonly paramNames: ReadonlyArray<P> | Array<P>;
+}): Record<P, string>;
 // Implementation
-export function useRouteParams<P extends string>(
-  _route?: { readonly paramNames: ReadonlyArray<P> | Array<P> },
-): Record<string, string> {
+export function useRouteParams<P extends string>(_route?: {
+  readonly paramNames: ReadonlyArray<P> | Array<P>;
+}): Record<string, string> {
   return useParams() as Record<string, string>;
 }
 
@@ -113,11 +118,10 @@ export function useResolvedPath(
  */
 export function useActivePath(
   template: string,
-  options: { exact?: boolean; caseSensitive?: boolean } = {
-    exact: true,
-    caseSensitive: false,
-  },
+  options: { exact?: boolean; caseSensitive?: boolean } = {},
 ): boolean {
+  // Forwarded as-is — isActivePath defaults `exact`/`caseSensitive`
+  // individually, so a partial options object here still behaves correctly.
   const location = useLocation();
   return isActivePath(location.pathname, template, options);
 }
@@ -165,4 +169,3 @@ export function useTypedSearchParams(options?: {
 
   return [queryParams, setTypedQuery] as const;
 }
-

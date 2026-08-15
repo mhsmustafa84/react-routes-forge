@@ -111,14 +111,15 @@ describe("defineRoutes", () => {
   });
 });
 
-
 // ─── defineRoutes validation ──────────────────────────────────────────────────
 
 describe("defineRoutes validation", () => {
   it("warns when a route path does not start with /", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     defineRoutes({ LOGIN: "login" } as const);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("does not start with"));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("does not start with"),
+    );
     warn.mockRestore();
   });
 
@@ -142,7 +143,9 @@ describe("defineRoutes validation", () => {
       A: { FOO: "/foo" },
       B: { FOO: "/foo" },
     } as const);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Duplicate route path"));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Duplicate route path"),
+    );
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('"/foo"'));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("A.FOO"));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("B.FOO"));
@@ -181,7 +184,6 @@ describe("defineRoutes validation", () => {
     process.env.NODE_ENV = original;
   });
 });
-
 
 // ─── buildPath ───────────────────────────────────────────────────────────────
 
@@ -337,12 +339,54 @@ describe("isActivePath", () => {
     ).toBe(true);
   });
 
+  // Regression: JS default parameters only apply when the whole `options`
+  // argument is omitted. A naive `options = { exact: true, ... }` default
+  // silently loses `exact: true` the moment a caller passes ANY partial
+  // options object (e.g. only `{ caseSensitive: true }`), because the
+  // caller's object replaces the default wholesale instead of merging with
+  // it — `options.exact` then reads as `undefined`, which is falsy, and the
+  // function silently falls back to prefix matching instead of the
+  // documented exact-match default.
+  it("still defaults to exact matching when a partial options object omits `exact`", () => {
+    // Extra "/posts" segment must break an exact match — this must stay
+    // false whether or not other option properties are also passed.
+    expect(
+      isActivePath("/users/42/posts", "/users/:id", { caseSensitive: true }),
+    ).toBe(false);
+    expect(
+      isActivePath("/users/42/posts", "/users/:id", { caseSensitive: false }),
+    ).toBe(false);
+    // Must match the fully-defaulted (no options at all) result exactly.
+    expect(
+      isActivePath("/users/42/posts", "/users/:id", { caseSensitive: true }),
+    ).toBe(isActivePath("/users/42/posts", "/users/:id"));
+  });
+
+  // Regression: the exact-match branch previously called matchPath(target)
+  // without forwarding `caseSensitive`, so matchPath fell back to its own
+  // default (case-insensitive) regardless of what the caller requested.
+  // caseSensitive:true had no effect at all when exact:true was also set.
+  it("respects caseSensitive:true specifically in exact-match mode", () => {
+    expect(
+      isActivePath("/Users/1", "/users/:id", {
+        exact: true,
+        caseSensitive: true,
+      }),
+    ).toBe(false);
+    expect(
+      isActivePath("/users/1", "/users/:id", {
+        exact: true,
+        caseSensitive: true,
+      }),
+    ).toBe(true);
+  });
+
   it("tolerates trailing slashes", () => {
     expect(isActivePath("/users/", "/users")).toBe(true);
     expect(isActivePath("/users/42/", "/users/:id")).toBe(true);
-    expect(isActivePath("/users/edit/42/", "/users/:id", { exact: false })).toBe(
-      true,
-    );
+    expect(
+      isActivePath("/users/edit/42/", "/users/:id", { exact: false }),
+    ).toBe(true);
   });
 
   it("tolerates a trailing slash on the template", () => {
@@ -509,31 +553,45 @@ describe("getParamNames", () => {
 
 describe("search query support", () => {
   it("appends query parameters when passed as a separate argument in buildPath", () => {
-    expect(buildPath("/users/:id", { id: 42 }, { tab: "profile", theme: "dark" })).toBe(
-      "/users/42?tab=profile&theme=dark"
-    );
+    expect(
+      buildPath("/users/:id", { id: 42 }, { tab: "profile", theme: "dark" }),
+    ).toBe("/users/42?tab=profile&theme=dark");
   });
 
   it("supports array values in query parameters", () => {
-    expect(buildPath("/users/:id", { id: 42 }, { tags: ["admin", "moderator"] })).toBe(
-      "/users/42?tags=admin&tags=moderator"
-    );
+    expect(
+      buildPath("/users/:id", { id: 42 }, { tags: ["admin", "moderator"] }),
+    ).toBe("/users/42?tags=admin&tags=moderator");
   });
 
   it("ignores undefined and null values in query parameters", () => {
-    expect(buildPath("/users/:id", { id: 42 }, { tab: null, theme: undefined, ref: "home" })).toBe(
-      "/users/42?ref=home"
-    );
+    expect(
+      buildPath(
+        "/users/:id",
+        { id: 42 },
+        { tab: null, theme: undefined, ref: "home" },
+      ),
+    ).toBe("/users/42?ref=home");
   });
 
   it("matches paths with query parameters in isActivePath", () => {
-    expect(isActivePath("/users/42?tab=profile&theme=dark", "/users/:id")).toBe(true);
-    expect(isActivePath("/users/42/posts?tab=profile", "/users/:id")).toBe(false);
-    expect(isActivePath("/users/42/posts?tab=profile", "/users/:id", { exact: false })).toBe(true);
+    expect(isActivePath("/users/42?tab=profile&theme=dark", "/users/:id")).toBe(
+      true,
+    );
+    expect(isActivePath("/users/42/posts?tab=profile", "/users/:id")).toBe(
+      false,
+    );
+    expect(
+      isActivePath("/users/42/posts?tab=profile", "/users/:id", {
+        exact: false,
+      }),
+    ).toBe(true);
   });
 
   it("extracts params correctly from paths with query parameters", () => {
-    expect(extractParamsFromPath("/users/:id", "/users/42?tab=profile&theme=dark")).toEqual({
+    expect(
+      extractParamsFromPath("/users/:id", "/users/42?tab=profile&theme=dark"),
+    ).toEqual({
       id: "42",
     });
   });
@@ -543,7 +601,9 @@ describe("search query support", () => {
       USERS: "/users/:id",
     } as const);
 
-    expect(PATHS.USERS.build({ id: 100 }, { filter: "active" })).toBe("/users/100?filter=active");
+    expect(PATHS.USERS.build({ id: 100 }, { filter: "active" })).toBe(
+      "/users/100?filter=active",
+    );
   });
 });
 
@@ -551,7 +611,9 @@ describe("search query support", () => {
 
 describe("hash fragment support", () => {
   it("appends a hash to a static path via buildPath options", () => {
-    expect(buildPath("/users", {}, undefined, { hash: "section" })).toBe("/users#section");
+    expect(buildPath("/users", {}, undefined, { hash: "section" })).toBe(
+      "/users#section",
+    );
   });
 
   it("appends a hash after the query string", () => {
@@ -561,9 +623,9 @@ describe("hash fragment support", () => {
   });
 
   it("appends a hash without query string", () => {
-    expect(
-      buildPath("/users/:id", { id: 7 }, undefined, { hash: "top" }),
-    ).toBe("/users/7#top");
+    expect(buildPath("/users/:id", { id: 7 }, undefined, { hash: "top" })).toBe(
+      "/users/7#top",
+    );
   });
 
   it("works with defineRoutes fluent .build()", () => {
@@ -571,7 +633,9 @@ describe("hash fragment support", () => {
       USERS: "/users/:id",
     } as const);
 
-    expect(PATHS.USERS.build({ id: 5 }, undefined, { hash: "profile" })).toBe("/users/5#profile");
+    expect(PATHS.USERS.build({ id: 5 }, undefined, { hash: "profile" })).toBe(
+      "/users/5#profile",
+    );
   });
 
   it("works with defineRoutes fluent .build() with query + hash", () => {
@@ -586,11 +650,15 @@ describe("hash fragment support", () => {
 
   it("does not add hash when options has no hash", () => {
     expect(buildPath("/users/:id", { id: 1 })).toBe("/users/1");
-    expect(buildPath("/users/:id", { id: 1 }, undefined, { strict: true })).toBe("/users/1");
+    expect(
+      buildPath("/users/:id", { id: 1 }, undefined, { strict: true }),
+    ).toBe("/users/1");
   });
 
   it("build() standalone supports hash option", () => {
-    expect(build("/users/:id", { id: 3 }, undefined, { hash: "edit" })).toBe("/users/3#edit");
+    expect(build("/users/:id", { id: 3 }, undefined, { hash: "edit" })).toBe(
+      "/users/3#edit",
+    );
   });
 });
 
@@ -655,7 +723,10 @@ describe("flattenRoutes", () => {
   });
 
   it("accepts an optional prefix argument", () => {
-    const flat = flattenRoutes({ ROOT: "/users", EDIT: "/users/edit/:id" }, "USERS");
+    const flat = flattenRoutes(
+      { ROOT: "/users", EDIT: "/users/edit/:id" },
+      "USERS",
+    );
     const keys = flat.map((r) => r.key);
     expect(keys).toContain("USERS.ROOT");
     expect(keys).toContain("USERS.EDIT");
@@ -674,7 +745,10 @@ describe("optional param segments (:param?)", () => {
   });
 
   it("mixes optional and required params", () => {
-    expect(extractParamNames("/users/:id?/posts/:postId")).toEqual(["id", "postId"]);
+    expect(extractParamNames("/users/:id?/posts/:postId")).toEqual([
+      "id",
+      "postId",
+    ]);
   });
 
   it("buildPath resolves optional param when provided", () => {
@@ -715,7 +789,9 @@ describe("optional param segments (:param?)", () => {
   });
 
   it("extractParamsFromPath handles optional param syntax", () => {
-    expect(extractParamsFromPath("/users/:id?", "/users/42")).toEqual({ id: "42" });
+    expect(extractParamsFromPath("/users/:id?", "/users/42")).toEqual({
+      id: "42",
+    });
   });
 
   it("extractParamsFromPath omits missing optional params", () => {
@@ -768,17 +844,15 @@ describe("buildPath strict mode", () => {
   it("emits console.warn (not throw) when strict is omitted and a param is missing", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     buildPath("/users/:id", {});
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Unresolved params"));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Unresolved params"),
+    );
     warn.mockRestore();
   });
 
   it("URL-encodes parameter values by default", () => {
-    expect(buildPath("/search/:query", { query: "a:b" })).toBe(
-      "/search/a%3Ab",
-    );
-    expect(buildPath("/search/:query", { query: "a/b" })).toBe(
-      "/search/a%2Fb",
-    );
+    expect(buildPath("/search/:query", { query: "a:b" })).toBe("/search/a%3Ab");
+    expect(buildPath("/search/:query", { query: "a/b" })).toBe("/search/a%2Fb");
   });
 
   it("keeps parameter values raw when { encode: false }", () => {
@@ -791,12 +865,9 @@ describe("buildPath strict mode", () => {
 
   it("handles parameter values containing colons without throwing or warning", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const path = buildPath(
-      "/search/:query",
-      { query: "a:b" },
-      undefined,
-      { strict: true },
-    );
+    const path = buildPath("/search/:query", { query: "a:b" }, undefined, {
+      strict: true,
+    });
     expect(path).toBe("/search/a%3Ab");
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
@@ -834,7 +905,9 @@ describe("splat (*) segments", () => {
   });
 
   it("buildPath encodes special characters in splat segments but not slashes", () => {
-    expect(buildPath("/files/*", { "*": "a b/c?d" })).toBe("/files/a%20b/c%3Fd");
+    expect(buildPath("/files/*", { "*": "a b/c?d" })).toBe(
+      "/files/a%20b/c%3Fd",
+    );
   });
 
   it("buildPath keeps splat values raw when { encode: false }", () => {
@@ -850,7 +923,9 @@ describe("splat (*) segments", () => {
 
   it("does not warn or throw in strict mode when the splat is missing", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(buildPath("/files/*", {}, undefined, { strict: true })).toBe("/files");
+    expect(buildPath("/files/*", {}, undefined, { strict: true })).toBe(
+      "/files",
+    );
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
@@ -919,18 +994,24 @@ describe("appendQuery", () => {
   });
 
   it("inserts the query before an existing hash fragment", () => {
-    expect(appendQuery("/users#top", { tab: "list" })).toBe("/users?tab=list#top");
+    expect(appendQuery("/users#top", { tab: "list" })).toBe(
+      "/users?tab=list#top",
+    );
     expect(appendQuery("/users?tab=list#top", { page: 2 })).toBe(
       "/users?tab=list&page=2#top",
     );
   });
 
   it("preserves the existing hash when no new hash is given", () => {
-    expect(appendQuery("/users#section", { page: 1 })).toBe("/users?page=1#section");
+    expect(appendQuery("/users#section", { page: 1 })).toBe(
+      "/users?page=1#section",
+    );
   });
 
   it("replaces the hash when a new one is provided", () => {
-    expect(appendQuery("/users#old", { page: 1 }, "new")).toBe("/users?page=1#new");
+    expect(appendQuery("/users#old", { page: 1 }, "new")).toBe(
+      "/users?page=1#new",
+    );
   });
 
   it("appends only the hash when there is no query", () => {
@@ -938,11 +1019,15 @@ describe("appendQuery", () => {
   });
 
   it("supports boolean query values", () => {
-    expect(appendQuery("/search", { active: true })).toBe("/search?active=true");
+    expect(appendQuery("/search", { active: true })).toBe(
+      "/search?active=true",
+    );
   });
 
   it("supports array values", () => {
-    expect(appendQuery("/users", { tag: ["a", "b"] })).toBe("/users?tag=a&tag=b");
+    expect(appendQuery("/users", { tag: ["a", "b"] })).toBe(
+      "/users?tag=a&tag=b",
+    );
   });
 });
 
@@ -1005,9 +1090,24 @@ describe("getBreadcrumbs", () => {
     const crumbs = getBreadcrumbs(PATHS, "/users/edit/42");
 
     expect(crumbs).toHaveLength(3);
-    expect(crumbs[0]).toMatchObject({ key: "HOME", label: "Home", path: "/", isCurrent: false });
-    expect(crumbs[1]).toMatchObject({ key: "USERS.ROOT", label: "Users", path: "/users", isCurrent: false });
-    expect(crumbs[2]).toMatchObject({ key: "USERS.EDIT", label: "Edit", path: "/users/edit/42", isCurrent: true });
+    expect(crumbs[0]).toMatchObject({
+      key: "HOME",
+      label: "Home",
+      path: "/",
+      isCurrent: false,
+    });
+    expect(crumbs[1]).toMatchObject({
+      key: "USERS.ROOT",
+      label: "Users",
+      path: "/users",
+      isCurrent: false,
+    });
+    expect(crumbs[2]).toMatchObject({
+      key: "USERS.EDIT",
+      label: "Edit",
+      path: "/users/edit/42",
+      isCurrent: true,
+    });
   });
 
   it("includes ancestor routes via prefix matching", () => {
@@ -1101,6 +1201,36 @@ describe("getBreadcrumbs", () => {
     const crumbs = getBreadcrumbs(PATHS, "/usersettings");
     expect(crumbs.map((c) => c.key)).toEqual(["HOME"]);
   });
+
+  // Regression: breadcrumb items were previously sorted by raw template
+  // string length as a stand-in for hierarchy depth. That breaks whenever a
+  // shallower route has a long param name and a deeper route has short
+  // segment names — e.g. "/shop/:reallyLongCategorySlugName" (2 segments,
+  // 33 chars) is shallower than "/shop/widgets/details" (3 segments, 21
+  // chars), but the old length-based sort put the deeper, shorter-string
+  // route first — and even after the "current page" entry.
+  it("orders breadcrumbs by path depth, not by template string length", () => {
+    const SHOP_PATHS = defineRoutes({
+      SHOP_CATEGORY: "/shop/:reallyLongCategorySlugName",
+      SHOP_ITEM_DETAILS: "/shop/widgets/details",
+      SHOP_ITEM_DETAILS_ID: "/shop/widgets/details/:id",
+    } as const);
+
+    // Sanity check the premise: the shallower route's template is the
+    // longer string, so a naive length-based sort would get this backwards.
+    expect(SHOP_PATHS.SHOP_CATEGORY.length).toBeGreaterThan(
+      SHOP_PATHS.SHOP_ITEM_DETAILS.length,
+    );
+
+    const crumbs = getBreadcrumbs(SHOP_PATHS, "/shop/widgets/details/42");
+
+    expect(crumbs.map((c) => c.key)).toEqual([
+      "SHOP_CATEGORY",
+      "SHOP_ITEM_DETAILS",
+      "SHOP_ITEM_DETAILS_ID",
+    ]);
+    expect(crumbs[crumbs.length - 1]!.isCurrent).toBe(true);
+  });
 });
 
 // ─── ExtractParams (type-level) ─────────────────────────────────────────────
@@ -1150,4 +1280,3 @@ describe("ExtractParams type-level", () => {
     expect(id).toBe("id");
   });
 });
-
