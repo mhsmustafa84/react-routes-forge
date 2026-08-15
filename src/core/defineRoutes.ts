@@ -114,35 +114,87 @@ function detectDuplicatePaths(routes: Record<string, unknown>): void {
   }
 }
 
-function wrapStaticPath<T extends string>(template: T): StaticRoute<T> {
-  const wrapped = new String(template) as unknown as StaticRoute<T> & {
-    build: (query?: QueryParams, options?: BuildPathOptions) => RoutePath;
-  };
-  wrapped.build = (query?: QueryParams, options?: BuildPathOptions) =>
-    buildPath(template, {}, query, options) as RoutePath;
+/**
+ * Attach `.build()` (and, for dynamic templates, `.paramNames`) to
+ * `String.prototype` exactly once, so route values can stay **genuine
+ * primitive strings** instead of `new String(template)` objects.
+ *
+ * Route values used to be wrapped in `new String(template)` so `.build()`
+ * could be attached as an own property. That silently broke direct use with
+ * React Router's `<Link to={...}>` (and anything else that branches on
+ * `typeof to === "string"`, e.g. React Router's internal `resolveTo()`):
+ * `typeof` on a `String` object is `"object"`, not `"string"`, so React
+ * Router treated the route value as a `Partial<Path>` and spread it
+ * (`{ ...routeValue }`) instead of parsing it as a path — producing a
+ * `pathname`-less destination and a broken/no-op navigation. `.build()`
+ * happened to "fix" it only because it returns a plain string.
+ *
+ * Putting `.build()`/`.paramNames` on the prototype instead means every
+ * primitive string route value can still call `.build()` / read
+ * `.paramNames` (resolved lazily from `this`, the template text itself),
+ * while `typeof route === "string"` stays true — so route values now work
+ * directly anywhere a plain path string is expected, `<Link to={route}>`
+ * included, with no `.build()` call required.
+ */
+function installBuildProtocol(): void {
+  if (Object.prototype.hasOwnProperty.call(String.prototype, "build")) {
+    return;
+  }
 
-  return wrapped as unknown as StaticRoute<T>;
+  Object.defineProperty(String.prototype, "build", {
+    value: function build(
+      this: string,
+      paramsOrQuery?: PathParams<string> | QueryParams,
+      query?: QueryParams,
+      options?: BuildPathOptions,
+    ): RoutePath {
+      const template = this.valueOf();
+
+      // Dynamic templates take (params, query?, options?); static templates
+      // take (query?, options?) — disambiguated from the template itself,
+      // since that's all the prototype method has to go on.
+      return (
+        isDynamic(template)
+          ? buildPath(
+              template,
+              (paramsOrQuery ?? {}) as PathParams<string>,
+              query,
+              options,
+            )
+          : buildPath(
+              template,
+              {},
+              paramsOrQuery as QueryParams,
+              query as unknown as BuildPathOptions,
+            )
+      ) as RoutePath;
+    },
+    writable: false,
+    enumerable: false,
+    configurable: true,
+  });
+
+  Object.defineProperty(String.prototype, "paramNames", {
+    get(this: string): string[] {
+      return extractParamNames(this.valueOf());
+    },
+    enumerable: false,
+    configurable: true,
+  });
+}
+
+installBuildProtocol();
+
+function wrapStaticPath<T extends string>(template: T): StaticRoute<T> {
+  // A genuine primitive string — `.build()` comes from String.prototype
+  // (see installBuildProtocol above), so `typeof` stays "string".
+  return template as StaticRoute<T>;
 }
 
 function wrapDynamicPath<T extends string>(template: T): DynamicRoute<T> {
-  const paramNames = extractParamNames(template);
-  const wrapped = new String(template) as unknown as DynamicRoute<T> & {
-    build: (
-      params: PathParams<T>,
-      query?: QueryParams,
-      options?: BuildPathOptions,
-    ) => RoutePath;
-    paramNames: Array<ExtractParams<T>>;
-  };
-
-  wrapped.build = (
-    params: PathParams<T>,
-    query?: QueryParams,
-    options?: BuildPathOptions,
-  ) => buildPath(template, params, query, options) as RoutePath;
-  wrapped.paramNames = paramNames as Array<ExtractParams<T>>;
-
-  return wrapped as unknown as DynamicRoute<T>;
+  // Same here: primitive string, `.build()` and `.paramNames` are resolved
+  // lazily from String.prototype based on the template text itself.
+  return template as unknown as DynamicRoute<T>;
 }
 
 function processRouteMap<T extends RouteTree>(routes: T): ResolvedRoutes<T> {
