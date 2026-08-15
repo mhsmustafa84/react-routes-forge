@@ -6,12 +6,12 @@
 
 ```ts
 // ✓ These all work as expected
-PATHS.HOME === "/";                 // true  (strict equality works)
-typeof PATHS.HOME;                  // 'string'
-String(PATHS.USERS.EDIT);          // '/users/edit/:id'
-`${PATHS.USERS.EDIT}`;             // '/users/edit/:id'
-PATHS.USERS.EDIT.build({ id: 42 }); // '/users/42' (via String.prototype)
-PATHS.USERS.EDIT.paramNames;        // ['id']
+PATHS.HOME === "/"; // true  (strict equality works)
+typeof PATHS.HOME; // 'string'
+String(PATHS.USERS.EDIT); // '/users/edit/:id'
+`${PATHS.USERS.EDIT}`; // '/users/edit/:id'
+PATHS.USERS.EDIT.build({ id: 42 }); // '/users/edit/42' (via String.prototype)
+PATHS.USERS.EDIT.paramNames; // ['id']
 ```
 
 Because route values are primitives, they behave like any other string: usable as object/`Map` keys, safe with React Router's `<Link to={...}>` (which branches on `typeof to === "string"`), and passed straight to `navigate()` or `useNavigateTo()` without a `.build()` call for static paths.
@@ -21,7 +21,7 @@ Because route values are primitives, they behave like any other string: usable a
 The helpers live on `String.prototype`, so **every** string in your app — route or not — has a `.build` method and a `.paramNames` getter:
 
 ```ts
-("/foo").build({}); // → '/foo'  (static template: no params to fill)
+"/foo".build({}); // → '/foo'  (static template: no params to fill)
 "/a/:b".paramNames; // → ['b']   (lazily parsed from the string itself)
 ```
 
@@ -32,7 +32,12 @@ This is what lets plain template literals act like routes. `.paramNames` is a la
 Splat routes (`/files/*`) capture the rest of the path — including slashes — into a single `*` param, matching React Router semantics. Supported across the entire core API, not just the hooks.
 
 ```ts
-import { defineRoutes, build, isActivePath, extractParamsFromPath } from "react-routes-forge";
+import {
+  defineRoutes,
+  build,
+  isActivePath,
+  extractParamsFromPath,
+} from "react-routes-forge";
 
 const PATHS = defineRoutes({
   FILES: "/files/*",
