@@ -56,6 +56,8 @@ import { PATHS } from "./paths";
 </Routes>;
 ```
 
+> Works identically whether you import these components from `react-router-dom` (v6/v7) or from `react-router` (v6/v7) — the library itself never imports from a specific router package, so both setups behave the same.
+
 ## Navigate with Type Safety
 
 Call `.build()` to resolve a dynamic path into a real URL — params are type-checked from the template:

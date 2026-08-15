@@ -592,7 +592,7 @@ beforeEach(() => {
 
 ## React hooks
 
-Import these only if you're using React Router — they live in a separate `react-routes-forge/hooks` entry, so the core package never pulls in `react-router-dom`.
+Import these only if you're using React Router — they live in a separate `react-routes-forge/hooks` entry, so the core package never pulls in `react-router`. The hooks work identically with **`react-router-dom`** (v6/v7) and **`react-router`** (v6/v7) — they're implemented on top of hooks that both packages export, so you get the same behaviour no matter which one your app imports from.
 
 ### `useRouteParams<T>()`
 
@@ -699,7 +699,7 @@ function Nav() {
 
 ### `useTypedSearchParams(options?)`
 
-A typed wrapper around React Router's `useSearchParams`. Returns a parsed query params object (using [`extractQueryFromPath()`](#extractqueryfrompathpath-options)) and a setter that updates the query string. The same coercion options are supported: `{ coerceBooleans: true }` and `{ coerceNumbers: true }`.
+A typed wrapper around React Router's search-params API (built on `useLocation` + `useNavigate`, which both `react-router-dom` and `react-router` export in v6 and v7). Returns a parsed query params object (using [`extractQueryFromPath()`](#extractqueryfrompathpath-options)) and a setter that updates the query string. The same coercion options are supported: `{ coerceBooleans: true }` and `{ coerceNumbers: true }`.
 
 ```tsx
 import { useTypedSearchParams } from "react-routes-forge/hooks";
@@ -1008,7 +1008,7 @@ If you're contributing, new behaviour should come with a matching test — the e
 ## Requirements
 
 - **React** ≥ 17 (peer dependency)
-- **react-router-dom** ≥ 6 (optional peer dependency — required only for the `react-routes-forge/hooks` entry)
+- **react-router-dom** ≥ 6 **or** **react-router** ≥ 6 (both optional peer dependencies — one of them is required only for the `react-routes-forge/hooks` entry. The hooks behave identically with either package and across v6 and v7, so `react-router-dom`-based apps and `react-router`-only v7 apps both work with no extra setup)
 - **Node.js** ≥ 18
 - **TypeScript** ≥ 5 recommended for full type inference (the package works with plain JavaScript too, just without compile-time param checking)
 

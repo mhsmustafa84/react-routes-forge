@@ -2,7 +2,7 @@
 
 `useTypedSearchParams(options?): [QueryParams, setter]`
 
-A typed wrapper around React Router's `useSearchParams`. Returns the parsed query params object (via `extractQueryFromPath`) and a setter that updates the query string.
+A typed wrapper around React Router's search-params API (built on `useLocation` + `useNavigate`, which both `react-router-dom` and `react-router` export in v6 and v7). Returns the parsed query params object (via `extractQueryFromPath`) and a setter that updates the query string.
 
 ## Options
 
@@ -31,4 +31,4 @@ function Filters() {
 }
 ```
 
-The setter accepts a `navigateOptions` second argument (`{ replace?, state? }`), passed through to React Router's `setSearchParams`.
+The setter accepts a `navigateOptions` second argument (`{ replace?, state? }`), passed through to the underlying navigation.

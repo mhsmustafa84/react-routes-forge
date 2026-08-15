@@ -37,7 +37,7 @@ PATHS.USERS.EDIT; // '/users/edit/:id'
 PATHS.USERS.EDIT.build({ id: 42 }); // '/users/edit/42'
 ```
 
-It plugs straight into React Router with zero configuration, and the React hooks entry adds typed `useParams`, navigation, active-link matching, and search-param handling — all without dragging `react-router-dom` into the core package.
+It plugs straight into React Router with zero configuration, and the React hooks entry adds typed `useParams`, navigation, active-link matching, and search-param handling — all without dragging `react-router` into the core package.
 
 ## Why react-routes-forge?
 
@@ -126,7 +126,8 @@ function EditUser() {
 - **Zero runtime dependencies** for the core API — React Router is an optional peer dependency
 - **Deep nesting** — organize routes into as many nested groups as your app needs
 - **React hooks** — `useRouteParams`, `useNavigateTo`, `useResolvedPath`, `useActivePath`, `useTypedSearchParams`
-- **Separate hooks entry** — React hooks live under `react-routes-forge/hooks`, so the core package never pulls in `react-router-dom`
+- **Separate hooks entry** — React hooks live under `react-routes-forge/hooks`, so the core package never pulls in `react-router`
+- **React Router v6 & v7** — hooks work identically with `react-router-dom` (v6/v7) and `react-router` (v6/v7); no duplicate-version risk
 - **ESM + CommonJS** — dual builds with proper `exports` conditions for bundlers and Node.js `require()`
 
 ## Route Types
