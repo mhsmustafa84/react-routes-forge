@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { matchPath } from "../../core/pattern";
+import { matchPath, clearPathCache } from "../../core/pattern";
 
 describe("matchPath", () => {
   it("returns a RegExp from a static template", () => {
@@ -98,5 +98,61 @@ describe("matchPath", () => {
     expect(re.test("/")).toBe(true);
     expect(re.test("/anything/here")).toBe(true);
     expect(re.exec("/anything/here")![1]).toBe("anything/here");
+  });
+
+  it("matches a prefix at a segment boundary when { end: false }", () => {
+    const re = matchPath("/users", { end: false });
+    expect(re.test("/users/42")).toBe(true);
+    expect(re.test("/users/42/posts")).toBe(true);
+    expect(re.test("/usersettings")).toBe(false);
+    expect(re.test("/users-edit")).toBe(false);
+  });
+
+  it("matches a dynamic prefix when { end: false }", () => {
+    const re = matchPath("/users/:id", { end: false });
+    expect(re.test("/users/42/posts")).toBe(true);
+    expect(re.test("/users/42")).toBe(true);
+    expect(re.test("/other/42/posts")).toBe(false);
+  });
+
+  it("anchors to the end of the path by default", () => {
+    const re = matchPath("/users");
+    expect(re.test("/users")).toBe(true);
+    expect(re.test("/users/42")).toBe(false);
+  });
+
+  it("is case-insensitive by default", () => {
+    expect(matchPath("/users/42").test("/USERS/42")).toBe(true);
+    expect(matchPath("/users/42").test("/Users/42")).toBe(true);
+  });
+
+  it("matches case-sensitively when { caseSensitive: true }", () => {
+    const re = matchPath("/users/42", { caseSensitive: true });
+    expect(re.test("/users/42")).toBe(true);
+    expect(re.test("/USERS/42")).toBe(false);
+  });
+
+  it("combines { end: false } with { caseSensitive: true }", () => {
+    const re = matchPath("/users/:id", { end: false, caseSensitive: true });
+    expect(re.test("/users/42/posts")).toBe(true);
+    expect(re.test("/USERS/42/posts")).toBe(false);
+  });
+});
+
+describe("clearPathCache", () => {
+  it("clears cached compiled patterns", () => {
+    const re1 = matchPath("/users/:id");
+    expect(matchPath("/users/:id")).toBe(re1);
+    clearPathCache();
+    // After clearing, a fresh compile happens — the cached instance is gone.
+    const re2 = matchPath("/users/:id");
+    expect(re2).not.toBe(re1);
+    expect(re2.test("/users/42")).toBe(true);
+  });
+
+  it("does not disturb matching behaviour after clearing", () => {
+    matchPath("/users/:id");
+    clearPathCache();
+    expect(matchPath("/users/:id").test("/users/7")).toBe(true);
   });
 });

@@ -54,9 +54,9 @@ describe("useNavigateTo", () => {
     }).not.toThrow();
   });
 
-  it("navigates when passed a String object route value", () => {
-    // defineRoutes() wraps routes as String objects; React Router's navigate()
-    // ignores them, so useNavigateTo must coerce to a primitive.
+  it("navigates when passed a route value straight from defineRoutes", () => {
+    // Route values are genuine primitive strings, so they can be passed to
+    // navigate() directly — no .build() call required for static paths.
     const PATHS = defineRoutes({ HOME: "/", USERS: { ROOT: "/users" } } as const);
 
     const hook = renderHook(
@@ -75,7 +75,7 @@ describe("useNavigateTo", () => {
     expect(hook.result.current.pathname).toBe("/start");
 
     act(() => {
-      hook.result.current.navigateTo(PATHS.USERS.ROOT as unknown as string);
+      hook.result.current.navigateTo(PATHS.USERS.ROOT);
     });
 
     expect(hook.result.current.pathname).toBe("/users");

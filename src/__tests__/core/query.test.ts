@@ -82,6 +82,22 @@ describe("extractQueryFromPath", () => {
     ).toEqual({ active: true, draft: false, name: "x" });
   });
 
+  it("coerces numeric strings to numbers when requested", () => {
+    expect(
+      extractQueryFromPath("/search?page=2&limit=10.5", {
+        coerceNumbers: true,
+      }),
+    ).toEqual({ page: 2, limit: 10.5 });
+  });
+
+  it("leaves non-numeric and empty values as strings under coerceNumbers", () => {
+    expect(
+      extractQueryFromPath("/search?page=2&q=react&x=", {
+        coerceNumbers: true,
+      }),
+    ).toEqual({ page: 2, q: "react", x: "" });
+  });
+
   it("keeps strings as strings by default", () => {
     expect(extractQueryFromPath("/search?active=true")).toEqual({
       active: "true",
