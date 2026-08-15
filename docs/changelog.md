@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.1](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.4.0...v1.4.1) (2026-08-15)
+
+
+### Bug Fixes
+
+* honor isActivePath options and order breadcrumbs by depth ([153eaf5](https://github.com/mhsmustafa84/react-routes-forge/commit/153eaf573052d02cf41fa25a4d8d533dd403e006))
+
+## [1.4.0](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.3.0...v1.4.0) (2026-08-15)
+
+
+### Features
+
+* make hooks work identically with react-router v6/v7 ([bf2ddf2](https://github.com/mhsmustafa84/react-routes-forge/commit/bf2ddf255d82b15ee4e38c726bffd81bfafe4a4d))
+
 ## [1.3.0](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.2.0...v1.3.0) (2026-08-01)
 
 

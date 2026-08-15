@@ -4,7 +4,7 @@
 
 Creates a fully typed route object from a nested plain object.
 
-- Every path is string-coercible — use it directly anywhere a string is expected.
+- Every path is a **genuine primitive string** — use it directly anywhere a string is expected (e.g. `<Route path={...} />`).
 - Static paths gain **`.build(query?, options?)`** — attach a query string and/or hash fragment without params.
 - Dynamic paths (containing `:param`) and splat paths (trailing `/*`) gain:
   - **`.build(params, query?, options?)`** — resolves the template into a concrete URL
@@ -43,10 +43,10 @@ PATHS.SERVICES.SUPPORT_CENTER.EDIT.paramNames; // ['id']
 
 ## Route Types
 
-| Route type  | Example                 | Behaves as                              | Gains                                                                 |
-| ----------- | ----------------------- | --------------------------------------- | --------------------------------------------------------------------- |
-| **Static**  | `HOME: '/'`             | String-like (coercible to its template) | `.build(query?, options?)` — attach query/hash, no params to fill      |
-| **Dynamic** | `DETAILS: '/users/:id'` | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`                  |
-| **Splat**   | `FILES: '/files/*'`     | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`                  |
+| Route type  | Example                 | Behaves as                            | Gains                                                                 |
+| ----------- | ----------------------- | ------------------------------------- | --------------------------------------------------------------------- |
+| **Static**  | `HOME: '/'`             | A primitive string (its template)     | `.build(query?, options?)` — attach query/hash, no params to fill      |
+| **Dynamic** | `DETAILS: '/users/:id'` | A primitive string (its template)     | `.build(params, query?, options?)` and `.paramNames`                  |
+| **Splat**   | `FILES: '/files/*'`     | A primitive string (its template)     | `.build(params, query?, options?)` and `.paramNames`                  |
 
-`defineRoutes()` walks your route object recursively, wrapping every path in a string-coercible object and attaching a `.build()` helper so both static and dynamic routes can carry a query string or hash. Dynamic paths (containing a `:param` segment or a trailing `/*` splat) additionally gain `.paramNames`.
+`defineRoutes()` walks your route object recursively, returning each path as a genuine primitive string. `.build()` (and `.paramNames` on dynamic paths) are attached to `String.prototype` once, so both static and dynamic routes can carry a query string or hash. Dynamic paths (containing a `:param` segment or a trailing `/*` splat) additionally gain `.paramNames`. See [Known Behaviours & Gotchas](/api/known-behaviours) for details.

@@ -22,11 +22,14 @@
 - [API reference](#api-reference)
   - [`defineRoutes(routeMap)`](#defineroutesroutemap)
   - [`build(template, params, query?, options?)`](#buildtemplate-params-query-options)
+  - [`buildPath(template, params, query?, options?)`](#buildpathtemplate-params-query-options)
   - [`isActivePath(currentPath, template, options?)`](#isactivepathcurrentpath-template-options)
   - [`extractParamsFromPath(template, resolvedPath)`](#extractparamsfrompathtemplate-resolvedpath)
   - [`matchPath(template, options?)`](#matchpathtemplate-options)
   - [`joinPaths(...segments)`](#joinpathssegments)
   - [`getParamNames(template)`](#getparamnamestemplate)
+  - [`extractParamNames(template)`](#extractparamnamestemplate)
+  - [`isDynamic(template)`](#isdynamictemplate)
   - [`flattenRoutes(routes)`](#flattenroutesroutes)
   - [`getBreadcrumbs(routes, currentPath, options?)`](#getbreadcrumbsroutes-currentpath-options)
   - [`appendQuery(path, query?, hash?)`](#appendquerypath-query-hash)
@@ -165,13 +168,13 @@ That's the entire API surface you need for most apps. Everything below covers th
 
 ### Route types
 
-| Route type  | Example                 | Behaves as                              | Gains                                                                 |
-| ----------- | ----------------------- | --------------------------------------- | --------------------------------------------------------------------- |
-| **Static**  | `HOME: '/'`             | String-like (coercible to its template) | `.build(query?, options?)` — attach query/hash, no params to fill      |
-| **Dynamic** | `DETAILS: '/users/:id'` | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`                  |
-| **Splat**   | `FILES: '/files/*'`     | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`                  |
+| Route type  | Example                 | Behaves as                            | Gains                                                                 |
+| ----------- | ----------------------- | ------------------------------------- | --------------------------------------------------------------------- |
+| **Static**  | `HOME: '/'`             | A primitive string (its template)     | `.build(query?, options?)` — attach query/hash, no params to fill      |
+| **Dynamic** | `DETAILS: '/users/:id'` | A primitive string (its template)     | `.build(params, query?, options?)` and `.paramNames`                  |
+| **Splat**   | `FILES: '/files/*'`     | A primitive string (its template)     | `.build(params, query?, options?)` and `.paramNames`                  |
 
-`defineRoutes()` walks your route object recursively, wrapping every path in a string-coercible object and attaching a `.build()` helper so both static and dynamic routes can carry a query string or hash. Dynamic paths (containing a `:param` segment or a trailing `/*` splat) additionally gain `.paramNames`.
+`defineRoutes()` walks your route object recursively, returning every path as a genuine primitive string. `.build()` (and `.paramNames` on dynamic paths) are attached to `String.prototype` once, so both static and dynamic routes can carry a query string or hash. Dynamic paths (containing a `:param` segment or a trailing `/*` splat) additionally gain `.paramNames`.
 
 Param names are `[A-Za-z0-9_]` only (matching React Router), so a static suffix after a param stays literal — `/files/:name.json` builds `{ name: "report" }` → `/files/report.json`, and `:name.json` is **not** treated as a single param name.
 
@@ -197,11 +200,14 @@ Quick reference for everything the package exports — grouped by kind. Click th
 | Export                                                                                         | Purpose                                                    |
 | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | [`build(template, params, query?, options?)`](#buildtemplate-params-query-options)             | Resolve a template into a URL without `defineRoutes`       |
+| [`buildPath(template, params, query?, options?)`](#buildpathtemplate-params-query-options)     | Same as `build()` — the underlying resolver `build` aliases |
 | [`isActivePath(currentPath, template, options?)`](#isactivepathcurrentpath-template-options)   | Check if a path matches a template (nav-highlighting)      |
 | [`extractParamsFromPath(template, resolvedPath)`](#extractparamsfrompathtemplate-resolvedpath) | Pull param values back out of a resolved URL               |
 | [`matchPath(template, options?)`](#matchpathtemplate-options)                                 | Convert a route template into an anchored `RegExp`         |
 | [`joinPaths(...segments)`](#joinpathssegments)                                                 | Join and normalize path segments                           |
 | [`getParamNames(template)`](#getparamnamestemplate)                                            | List the `:param` names in a template                      |
+| [`extractParamNames(template)`](#extractparamnamestemplate)                                    | Same as `getParamNames()` — the canonical implementation   |
+| [`isDynamic(template)`](#isdynamictemplate)                                                    | `true` if a template contains a `:param` or trailing `/*`  |
 | [`flattenRoutes(routes)`](#flattenroutesroutes)                                                | Flatten a `PATHS` tree for sitemaps / duplicate detection  |
 | [`getBreadcrumbs(routes, currentPath, options?)`](#getbreadcrumbsroutes-currentpath-options)   | Build a breadcrumb trail from a route tree and current URL |
 | [`appendQuery(path, query?, hash?)`](#appendquerypath-query-hash)                              | Append query params / hash to an existing path             |
@@ -227,7 +233,7 @@ Quick reference for everything the package exports — grouped by kind. Click th
 
 Creates a fully typed route object from a nested plain object.
 
-- Every path is string-coercible — use it directly anywhere a string is expected (e.g. `<Route path={...} />`).
+- Every path is a genuine primitive string — use it directly anywhere a string is expected (e.g. `<Route path={...} />`).
 - Static paths gain **`.build(query?, options?)`** — attach a query string and/or hash fragment without params.
 - Dynamic paths (containing `:param`) and splat paths (trailing `/*`) gain:
   - **`.build(params, query?, options?)`** — resolves the template into a concrete URL
@@ -301,6 +307,21 @@ build("/files/*", { "*": "reports/2026/q1" });
 ```
 
 See [Splat (`/*`) segments](#splat--segments) for details.
+
+---
+
+### `buildPath(template, params, query?, options?)`
+
+The canonical path resolver that [`build()`](#buildtemplate-params-query-options) is an alias of — identical signature and behaviour. It is exported under both names; reach for `buildPath` when you want the name to match the internals (e.g. when reading the [`useResolvedPath()`](#useresolvedpathtemplate-params-query-options) wrapper), and `build` for a shorter call site.
+
+```ts
+import { buildPath } from "react-routes-forge";
+
+buildPath("/users/:id", { id: 42 }); // → '/users/42'
+buildPath("/users", {}, { sort: "asc" }); // → '/users?sort=asc'
+```
+
+All `build()` examples above apply verbatim to `buildPath`.
 
 ---
 
@@ -407,6 +428,36 @@ import { getParamNames } from "react-routes-forge";
 getParamNames("/users/:id/posts/:postId"); // → ['id', 'postId']
 getParamNames("/files/*"); // → ['*']  (the splat param)
 getParamNames("/users"); // → []
+```
+
+---
+
+### `extractParamNames(template)`
+
+The canonical implementation behind [`getParamNames()`](#getparamnamestemplate) — same signature and results, kept under both names for compatibility. Param names are `[A-Za-z0-9_]` only, recognized at the start of a segment; a trailing `/*` splat is reported as `['*']`.
+
+```ts
+import { extractParamNames } from "react-routes-forge";
+
+extractParamNames("/users/:id/posts/:postId"); // → ['id', 'postId']
+extractParamNames("/files/*"); // → ['*']
+extractParamNames("/users"); // → []
+```
+
+---
+
+### `isDynamic(template)`
+
+Returns `true` when a template contains a `:param` segment or a trailing `/*` splat, and `false` otherwise. This is exactly the test `defineRoutes()` uses to decide whether a path gains `.paramNames`:
+
+```ts
+import { isDynamic } from "react-routes-forge";
+
+isDynamic("/users/:id"); // true
+isDynamic("/users/:id?"); // true  (optional params count)
+isDynamic("/files/*"); // true  (splat)
+isDynamic("/users"); // false
+isDynamic("/users/foo:bar"); // false  (literal colon inside a segment)
 ```
 
 ---
@@ -930,22 +981,23 @@ Everywhere the template string itself was used (e.g. `<Route path={PATHS.SERVICE
 
 ## Known behaviours & gotchas
 
-### Routes are `String` objects, not primitives
+### Routes are genuine primitive strings
 
-`defineRoutes` wraps **every** path — static, dynamic, and splat — in [`String` objects](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/String) so that `.build()` (and `.paramNames` on dynamic routes) can be attached as properties. This means:
+`defineRoutes()` returns **plain primitive strings** — `typeof` a route value is `"string"` and strict equality against the template works. `.build()` (and `.paramNames` on dynamic routes) are not own properties of the route value; they are attached to `String.prototype` once, so every route value can still call them lazily from its own text:
 
 ```ts
 // ✓ These all work as expected
+PATHS.HOME === "/"; // true  (strict equality works)
+typeof PATHS.HOME; // 'string'
 String(PATHS.HOME); // '/'
 `${PATHS.USERS.EDIT}`; // '/users/edit/:id'
-PATHS.USERS.EDIT == "/users/edit/:id"; // true  (loose equality)
-
-// ✗ Watch out for these
-typeof PATHS.HOME; // 'object' ← not 'string'
-PATHS.HOME === "/"; // false    ← strict equality fails
+PATHS.USERS.EDIT.build({ id: 42 }); // '/users/42'  (via String.prototype)
+PATHS.USERS.EDIT.paramNames; // ['id']
 ```
 
-Prefer template literals or explicit `String()` coercion when comparing route values, and avoid using them as plain object/`Map` keys.
+Because route values are primitives, they work anywhere a plain string does — as object/`Map` keys, and directly with React Router's `<Link to={...}>` or `navigate()` (which branch on `typeof to === "string"`), no `.build()` call required for static paths.
+
+The flip side: since `.build` and `.paramNames` live on `String.prototype`, **every** string in your app has them, not just routes. `"/foo".build({})` → `'/foo'`, and `"/a/:b".paramNames` → `['b']` — `.paramNames` is a lazy getter that parses the string's own text, so it's always correct. Just be aware the helpers exist globally when you're using the library.
 
 ### `useResolvedPath` vs. the library's own `buildPath`
 

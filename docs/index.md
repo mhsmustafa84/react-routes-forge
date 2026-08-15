@@ -132,11 +132,11 @@ function EditUser() {
 
 ## Route Types
 
-| Route type  | Example                 | Behaves as                              | Gains                                                             |
-| ----------- | ----------------------- | --------------------------------------- | ----------------------------------------------------------------- |
-| **Static**  | `HOME: '/'`             | String-like (coercible to its template) | `.build(query?, options?)` — attach query/hash, no params to fill |
-| **Dynamic** | `DETAILS: '/users/:id'` | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`              |
-| **Splat**   | `FILES: '/files/*'`     | String-like (coercible to its template) | `.build(params, query?, options?)` and `.paramNames`              |
+| Route type  | Example                 | Behaves as                        | Gains                                                             |
+| ----------- | ----------------------- | --------------------------------- | ----------------------------------------------------------------- |
+| **Static**  | `HOME: '/'`             | A primitive string (its template) | `.build(query?, options?)` — attach query/hash, no params to fill |
+| **Dynamic** | `DETAILS: '/users/:id'` | A primitive string (its template) | `.build(params, query?, options?)` and `.paramNames`              |
+| **Splat**   | `FILES: '/files/*'`     | A primitive string (its template) | `.build(params, query?, options?)` and `.paramNames`              |
 
 ## Next Steps
 

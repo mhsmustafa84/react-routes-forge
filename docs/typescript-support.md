@@ -40,7 +40,7 @@ The package exports the following types for advanced use cases:
 | `FlatRoute`         | A single flattened route entry (`{ key, path }`)     |
 | `BreadcrumbItem`    | A single breadcrumb entry                            |
 | `BreadcrumbOptions` | Options for `getBreadcrumbs` (resolver or labels map) |
-| `StaticRoute`       | A static route leaf — string-coercible with `.build(query?, options?)` |
+| `StaticRoute`       | A static route leaf — a genuine primitive string with `.build(query?, options?)` |
 | `DynamicRoute`      | A dynamic/splat route leaf — with `.build(params, ...)` and `.paramNames` |
 | `MatchPathOptions`  | Options for `matchPath` (`end`, `caseSensitive`)      |
 
