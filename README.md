@@ -644,14 +644,20 @@ beforeEach(() => {
 
 ## React hooks
 
-Import these only if you're using React Router — they live in a separate `react-routes-forge/hooks` entry, so the core package never pulls in `react-router`. The hooks work identically with **`react-router-dom`** (v6/v7) and **`react-router`** (v6/v7) — they're implemented on top of hooks that both packages export, so you get the same behaviour no matter which one your app imports from.
+Import these if you're using React Router or Next.js — they live in separate entries (`react-routes-forge/hooks` and `react-routes-forge/next`), so the core package never pulls in router dependencies. The React Router hooks work identically with **`react-router-dom`** (v6/v7) and **`react-router`** (v6/v7).
+
+> **Note for Next.js users**: Equivalent hooks for Next.js App Router and Pages Router are available in `react-routes-forge/next`. They share the same API as the React Router hooks documented below.
 
 ### `useRouteParams<T>()`
 
-Typed wrapper around React Router's `useParams`. Pass the route's template string as a generic to get a correctly typed params object back — no casting, and it works for any number of `:param` segments. Alternatively, pass a **dynamic route value from your `PATHS` tree** and the params are inferred from it automatically:
+Typed wrapper around React Router's and Next.js's `useParams`. Pass the route's template string as a generic to get a correctly typed params object back — no casting, and it works for any number of `:param` segments. Alternatively, pass a **dynamic route value from your `PATHS` tree** and the params are inferred from it automatically:
 
 ```tsx
+// For React Router
 import { useRouteParams } from "react-routes-forge/hooks";
+
+// For Next.js
+// import { useRouteParams } from "react-routes-forge/next";
 
 // Route: '/users/edit/:id'
 function EditUser() {

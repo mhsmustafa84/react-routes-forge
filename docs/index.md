@@ -126,7 +126,8 @@ function EditUser() {
 - **Zero runtime dependencies** for the core API — React Router is an optional peer dependency
 - **Deep nesting** — organize routes into as many nested groups as your app needs
 - **React hooks** — `useRouteParams`, `useNavigateTo`, `useResolvedPath`, `useActivePath`, `useTypedSearchParams`
-- **Separate hooks entry** — React hooks live under `react-routes-forge/hooks`, so the core package never pulls in `react-router`
+- **Next.js Integration** — Next.js hooks are available under `react-routes-forge/next` (App Router and Pages Router supported)
+- **Separate hooks entry** — React hooks live under `react-routes-forge/hooks` (and `react-routes-forge/next`), so the core package never pulls in router dependencies.
 - **React Router v6 & v7** — hooks work identically with `react-router-dom` (v6/v7) and `react-router` (v6/v7); no duplicate-version risk
 - **ESM + CommonJS** — dual builds with proper `exports` conditions for bundlers and Node.js `require()`
 

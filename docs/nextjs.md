@@ -83,12 +83,12 @@ The `PATHS` object and `.build()` method work identically in both environments. 
 
 ## Hooks
 
-All hooks from `react-routes-forge/hooks` require a Client Component context:
+All hooks from `react-routes-forge/next` require a Client Component context:
 
 ```tsx
 "use client";
 
-import { useActivePath, useRouteParams } from "react-routes-forge/hooks";
+import { useActivePath, useRouteParams } from "react-routes-forge/next";
 import { PATHS } from "../paths";
 
 export function Sidebar() {
