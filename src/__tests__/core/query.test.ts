@@ -48,6 +48,40 @@ describe("appendQuery", () => {
       "/users?tag=a&tag=b",
     );
   });
+
+  it("handles falsy query values safely (0, false, empty string)", () => {
+    expect(appendQuery("/api", { count: 0 })).toBe("/api?count=0");
+    expect(appendQuery("/api", { active: false })).toBe("/api?active=false");
+    expect(appendQuery("/api", { name: "" })).toBe("/api?name=");
+  });
+
+  it("skips undefined and null query values but preserves others", () => {
+    expect(appendQuery("/api", { a: null, b: undefined, c: 1 })).toBe("/api?c=1");
+  });
+
+  it("handles complex objects and symbols by stringifying them", () => {
+    expect(appendQuery("/users", { nested: { obj: "value" } as any })).toBe("/users?nested=%5Bobject+Object%5D");
+    expect(appendQuery("/users", { sym: Symbol("test") as any })).toBe("/users?sym=Symbol%28test%29");
+  });
+
+  it("preserves falsy values in arrays but skips null/undefined", () => {
+    expect(appendQuery("/api", { arr: [0, false, ""] })).toBe("/api?arr=0&arr=false&arr=");
+    expect(appendQuery("/api", { arr: [1, null, undefined, 2] })).toBe("/api?arr=1&arr=2");
+  });
+
+  it("handles special characters in query keys and values", () => {
+    expect(appendQuery("/users", { "a=b": "c&d" })).toBe("/users?a%3Db=c%26d");
+    expect(appendQuery("/users", { q: "a?b=c" })).toBe("/users?q=a%3Fb%3Dc");
+    expect(appendQuery("/users", { q: "a#b" })).toBe("/users?q=a%23b");
+  });
+
+  it("safely handles massive query objects", () => {
+    const hugeQuery: Record<string, string> = {};
+    for (let i = 0; i < 1000; i++) hugeQuery[`key${i}`] = `value${i}`;
+    const result = appendQuery("/users", hugeQuery);
+    expect(result.startsWith("/users?key0=value0&key1=value1")).toBe(true);
+    expect(result).toContain("key999=value999");
+  });
 });
 
 describe("extractQueryFromPath", () => {

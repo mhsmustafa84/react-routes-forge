@@ -21,6 +21,26 @@ describe("buildPath", () => {
   it("leaves static paths unchanged", () => {
     expect(buildPath("/users", {})).toBe("/users");
   });
+
+  it("safely handles circular references in params without stack overflow", () => {
+    const circular: any = { id: 1 };
+    circular.self = circular;
+    // It should extract id normally
+    expect(buildPath("/items/:id", circular)).toBe("/items/1");
+    // If the circular object is the param value itself
+    expect(buildPath("/items/:ref", { ref: circular })).toBe("/items/%5Bobject%20Object%5D");
+  });
+
+  it("handles empty strings and whitespace param values", () => {
+    expect(buildPath("/users/:name", { name: "" })).toBe("/users/");
+    expect(buildPath("/users/:name", { name: "   " })).toBe("/users/%20%20%20");
+    expect(buildPath("/users/:name", { name: "\n\t" })).toBe("/users/%0A%09");
+  });
+
+  it("handles boolean coercion to strings safely", () => {
+    expect(buildPath("/items/:flag", { flag: true } as any)).toBe("/items/true");
+    expect(buildPath("/items/:flag", { flag: false } as any)).toBe("/items/false");
+  });
 });
 
 describe("params with static suffixes", () => {
