@@ -24,6 +24,18 @@ describe("defineRoutes", () => {
     expect(PATHS.USERS.ADD).toBe("/users/add");
   });
 
+  it("supports buildRelative on static paths", () => {
+    expect(PATHS.HOME.buildRelative()).toBe(".");
+    expect(PATHS.LOGIN.buildRelative()).toBe("login");
+    expect(PATHS.USERS.ROOT.buildRelative()).toBe("users");
+    expect(PATHS.USERS.ADD.buildRelative()).toBe("users/add");
+  });
+
+  it("supports buildRelative on dynamic paths", () => {
+    expect(PATHS.USERS.EDIT.buildRelative({ id: 42 })).toBe("users/edit/42");
+    expect(PATHS.USERS.DETAILS.buildRelative({ id: 99 })).toBe("users/99");
+  });
+
   it("keeps dynamic paths as their template string", () => {
     expect(PATHS.USERS.EDIT).toBe("/users/edit/:id");
     expect(PATHS.USERS.DETAILS).toBe("/users/:id");

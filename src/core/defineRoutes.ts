@@ -24,6 +24,7 @@ export { extractParamNames, isDynamic } from "./params";
  */
 export type StaticRoute<T extends string> = T & {
   build(query?: QueryParams, options?: BuildPathOptions): RoutePath;
+  buildRelative(query?: QueryParams, options?: BuildPathOptions): string;
 };
 
 export type DynamicRoute<T extends string> = T extends
@@ -35,6 +36,11 @@ export type DynamicRoute<T extends string> = T extends
         query?: QueryParams,
         options?: BuildPathOptions,
       ): RoutePath;
+      buildRelative(
+        params: PathParams<T>,
+        query?: QueryParams,
+        options?: BuildPathOptions,
+      ): string;
       paramNames: Array<ExtractParams<T>>;
     }
   : StaticRoute<T>;
@@ -168,6 +174,21 @@ function installBuildProtocol(): void {
               query as unknown as BuildPathOptions,
             )
       ) as RoutePath;
+    },
+    writable: false,
+    enumerable: false,
+    configurable: true,
+  });
+
+  Object.defineProperty(String.prototype, "buildRelative", {
+    value: function buildRelative(
+      this: string,
+      paramsOrQuery?: PathParams<string> | QueryParams,
+      query?: QueryParams,
+      options?: BuildPathOptions,
+    ): string {
+      const absolutePath = (this as any).build(paramsOrQuery, query, options);
+      return absolutePath.replace(/^\/+/, "") || ".";
     },
     writable: false,
     enumerable: false,
