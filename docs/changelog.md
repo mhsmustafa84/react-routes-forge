@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.4.2...v1.5.0) (2026-09-03)
+
+
+### Features
+
+* add 'use client' directives and SSR guard to hooks ([1d2cb9d](https://github.com/mhsmustafa84/react-routes-forge/commit/1d2cb9dca8a3a9c8ee99cdcb6ed60e6c0d87ad57))
+* add buildRelative method for relative path generation ([e75fe2c](https://github.com/mhsmustafa84/react-routes-forge/commit/e75fe2c020fac6acc2b975a1e08f17e99a8df185))
+* add locale option to buildPath for i18n support ([529f585](https://github.com/mhsmustafa84/react-routes-forge/commit/529f585f49a8b1c8b779dc7e683529942a3dddc5))
+* add react-routes-forge/next entry with Next.js hooks ([6ba0d1d](https://github.com/mhsmustafa84/react-routes-forge/commit/6ba0d1d278f10aebfd8ffb7f8d7cca851f4cd132))
+* add SSR safety checks and improve useTypedSearchParams ([1c4944b](https://github.com/mhsmustafa84/react-routes-forge/commit/1c4944b2e5f8ec79c74db04330b57f658160697b))
+
+
+### Bug Fixes
+
+* improve edge case handling in core utilities ([5f88071](https://github.com/mhsmustafa84/react-routes-forge/commit/5f880716c8102f9754e9d06bd99ea9a1df3acdec))
+
+### [1.4.2](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.4.1...v1.4.2) (2026-08-15)
+
 ### [1.4.1](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.4.0...v1.4.1) (2026-08-15)
 
 
@@ -42,7 +60,7 @@ All notable changes to this project will be documented in this file. See [standa
 * infer useRouteParams params from route paramNames ([0c99a5f](https://github.com/mhsmustafa84/react-routes-forge/commit/0c99a5f6272892f85b37319bfcb7da924b27cc44))
 * keep ExtractParams valid for widened DynamicRoute segments ([2139bce](https://github.com/mhsmustafa84/react-routes-forge/commit/2139bce5f989dea39295333f191972a612b742fa))
 
-## [1.2.0](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.1.0...v1.2.0) (2026-07-26)
+## [1.2.0](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.1.3...v1.2.0) (2026-07-26)
 
 
 ### Features

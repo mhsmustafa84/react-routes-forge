@@ -22,6 +22,10 @@ build("/users/:id", {}, undefined, { strict: true });
 build("/users/:id", { id: 42 }, { tab: "info" }, { hash: "details" });
 // → '/users/42?tab=info#details'
 
+// Locale prefix — pre-pends the path with a locale segment
+build("/users/:id", { id: 42 }, undefined, { locale: "en-US" });
+// → '/en-US/users/42'
+
 // Param values are URL-encoded by default
 build("/search/:query", { query: "a/b" });
 // → '/search/a%2Fb'
@@ -36,6 +40,26 @@ build("/files/*", { "*": "reports/2026/q1" });
 ```
 
 See [Splat Segments](/api/known-behaviours#splat-segments) for details.
+
+## buildRelative
+
+`buildRelative` has the exact same signature as `build()`, but it returns a relative path by stripping the leading slash (returning `"."` if the path is empty). It is available as a standalone function `buildRelative()` and as `.buildRelative()` on route values.
+
+```ts
+import { defineRoutes, buildRelative } from "react-routes-forge";
+
+const PATHS = defineRoutes({
+  USERS: {
+    EDIT: "/users/:id/edit"
+  }
+} as const);
+
+PATHS.USERS.EDIT.buildRelative({ id: 42 }); 
+// → 'users/42/edit'
+
+buildRelative("/users/:id", { id: 42 });
+// → 'users/42'
+```
 
 ## Query String Serialization
 

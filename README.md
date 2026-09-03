@@ -23,6 +23,7 @@
   - [`defineRoutes(routeMap)`](#defineroutesroutemap)
   - [`build(template, params, query?, options?)`](#buildtemplate-params-query-options)
   - [`buildPath(template, params, query?, options?)`](#buildpathtemplate-params-query-options)
+  - [`buildRelative(template, params, query?, options?)`](#buildrelativetemplate-params-query-options)
   - [`isActivePath(currentPath, template, options?)`](#isactivepathcurrentpath-template-options)
   - [`extractParamsFromPath(template, resolvedPath)`](#extractparamsfrompathtemplate-resolvedpath)
   - [`matchPath(template, options?)`](#matchpathtemplate-options)
@@ -290,6 +291,10 @@ build("/users/:id", { id: 42 }, { tab: "info" }, { hash: "details" });
 // → '/users/42?tab=info#details'
 build("/page", {}, undefined, { hash: "section" });
 // → '/page#section'
+
+// Locale prefix — pre-pends the path with a locale segment
+build("/users/:id", { id: 42 }, undefined, { locale: "en-US" });
+// → '/en-US/users/42'
 ```
 
 **Param values are URL-encoded by default** (`encodeURIComponent`), so characters like `/`, `?`, `#`, or `%` in a value can't break the URL structure:
@@ -323,6 +328,28 @@ buildPath("/users", {}, { sort: "asc" }); // → '/users?sort=asc'
 ```
 
 All `build()` examples above apply verbatim to `buildPath`.
+
+---
+
+### `buildRelative(template, params, query?, options?)`
+
+Identical to `build()`, but returns a relative path by stripping the leading slash (and returning `"."` if the path resolves to `/` or empty). It is available as a standalone function `buildRelative()` and as `.buildRelative()` on the route values returned by `defineRoutes()`.
+
+```ts
+import { defineRoutes, buildRelative } from "react-routes-forge";
+
+const PATHS = defineRoutes({
+  USERS: {
+    EDIT: "/users/:id/edit"
+  }
+} as const);
+
+PATHS.USERS.EDIT.buildRelative({ id: 42 }); 
+// → 'users/42/edit'
+
+buildRelative("/users/:id", { id: 42 });
+// → 'users/42'
+```
 
 ---
 
