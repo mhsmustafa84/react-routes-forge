@@ -42,6 +42,7 @@
   - [`useResolvedPath(template, params, query?, options?)`](#useresolvedpathtemplate-params-query-options)
   - [`useActivePath(template, options?)`](#useactivepathtemplate-options)
   - [`useTypedSearchParams(options?)`](#usetypedsearchparamsoptions)
+- [Next.js Integration](#nextjs-integration)
 - [Splat (`/*`) segments](#splat--segments)
 - [Route validation](#route-validation)
 - [Query string support](#query-string-support)
@@ -685,10 +686,13 @@ function EditUserInferred() {
 
 ### `useNavigateTo()`
 
-Thin, typed wrapper around `useNavigate()` that accepts a resolved path (the output of `.build()`) along with the usual navigation options.
+Thin, typed wrapper around `useNavigate()` (or Next.js's `useRouter()`) that accepts a resolved path (the output of `.build()`) along with the usual navigation options.
 
 ```tsx
+// For React Router
 import { useNavigateTo } from "react-routes-forge/hooks";
+// For Next.js
+// import { useNavigateTo } from "react-routes-forge/next";
 import { PATHS } from "./paths";
 
 function Component() {
@@ -708,6 +712,8 @@ navigateTo(PATHS.USERS.ROOT, { state: { from: "settings" } });
 ---
 
 ### `useResolvedPath(template, params, query?, options?)`
+
+> **Note**: This hook is specific to React Router (`react-routes-forge/hooks`). For Next.js, you can simply use `.build()` directly since Next.js doesn't use relative routing or base paths in the same way.
 
 Resolves a path template to a concrete URL string without navigating — useful for `<Link to={...} />`, preloading, or building a URL for something other than `navigate()`. It mirrors the library's own [`build()`](#buildtemplate-params-query-options), so splat (`*`) and optional (`:param?`) segments work identically to the core API — and the encoding/`strict` behaviour is consistent across React Router v6 and v7. Accepts the same `query` and `options` as [`build()`](#buildtemplate-params-query-options).
 
@@ -736,10 +742,13 @@ const path = useResolvedPath("/page", {}, undefined, { hash: "section" });
 
 ### `useActivePath(template, options?)`
 
-A hook that checks whether the current location matches a route template or path — a thin wrapper around [`isActivePath()`](#isactivepathcurrentpath-template-options) that reads the location from the router. Same matching semantics: case-insensitive by default, trailing slashes tolerated, `exact: true` by default.
+A hook that checks whether the current location matches a route template or path — a thin wrapper around [`isActivePath()`](#isactivepathcurrentpath-template-options) that reads the location from the router (`useLocation` in React Router, `usePathname` in Next.js). Same matching semantics: case-insensitive by default, trailing slashes tolerated, `exact: true` by default.
 
 ```tsx
+// For React Router
 import { useActivePath } from "react-routes-forge/hooks";
+// For Next.js
+// import { useActivePath } from "react-routes-forge/next";
 
 function Nav() {
   const isUsersActive = useActivePath(PATHS.USERS.ROOT, { exact: false });
@@ -757,10 +766,13 @@ function Nav() {
 
 ### `useTypedSearchParams(options?)`
 
-A typed wrapper around React Router's search-params API (built on `useLocation` + `useNavigate`, which both `react-router-dom` and `react-router` export in v6 and v7). Returns a parsed query params object (using [`extractQueryFromPath()`](#extractqueryfrompathpath-options)) and a setter that updates the query string. The same coercion options are supported: `{ coerceBooleans: true }` and `{ coerceNumbers: true }`.
+A typed wrapper around the router's search-params API (React Router's `useSearchParams` or Next.js's `useSearchParams` + `useRouter`). Returns a parsed query params object (using [`extractQueryFromPath()`](#extractqueryfrompathpath-options)) and a setter that updates the query string. The same coercion options are supported: `{ coerceBooleans: true }` and `{ coerceNumbers: true }`.
 
 ```tsx
+// For React Router
 import { useTypedSearchParams } from "react-routes-forge/hooks";
+// For Next.js
+// import { useTypedSearchParams } from "react-routes-forge/next";
 
 function Filters() {
   const [query, setQuery] = useTypedSearchParams({
@@ -776,6 +788,35 @@ function Filters() {
   setQuery({ page: 1, sort: "asc" });
 }
 ```
+
+---
+
+## Next.js Integration
+
+`react-routes-forge` provides first-class support for Next.js App Router and Pages Router. The core utilities (`defineRoutes`, `.build()`, query helpers) are fully isomorphic and can be used on both the client and server.
+
+**Client Hooks:**
+All hooks provided for Next.js are available in `react-routes-forge/next` and require a Client Component context (e.g. `"use client"` directive).
+
+```tsx
+"use client";
+
+import { useActivePath, useRouteParams, useNavigateTo, useTypedSearchParams } from "react-routes-forge/next";
+import { PATHS } from "../paths";
+
+export function Sidebar() {
+  const isUsersActive = useActivePath(PATHS.USERS.ROOT);
+  const { id } = useRouteParams(PATHS.USERS.DETAILS);
+  const navigateTo = useNavigateTo();
+
+  return <nav>...</nav>;
+}
+```
+
+**Server Components:**
+You can safely import your `PATHS` definition in Server Components and use `.build()` to generate URLs for `<Link href={...}>`, `redirect()`, or metadata generation without any issues. No `"use client"` is needed for the core API!
+
+For a full breakdown of Next.js usage, see the [Next.js documentation](https://mhsmustafa84.github.io/react-routes-forge/nextjs).
 
 ---
 
