@@ -26,7 +26,11 @@ import type {
 export function flattenRoutes(
   routes: Record<string, unknown>,
   prefix = "",
+  visited = new Set<Record<string, unknown>>(),
 ): FlatRoute[] {
+  if (visited.has(routes)) return [];
+  visited.add(routes);
+
   const entries: FlatRoute[] = [];
 
   for (const key of Object.keys(routes)) {
@@ -41,7 +45,7 @@ export function flattenRoutes(
       entries.push({ key: fullKey, path: value.valueOf() });
     } else if (typeof value === "object" && value !== null) {
       // Nested route group — recurse.
-      entries.push(...flattenRoutes(value as Record<string, unknown>, fullKey));
+      entries.push(...flattenRoutes(value as Record<string, unknown>, fullKey, visited));
     }
     // Anything else (functions, numbers, …) is silently skipped.
   }

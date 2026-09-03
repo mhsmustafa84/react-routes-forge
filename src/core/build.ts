@@ -36,6 +36,13 @@ export function buildPath(
 
     if (name === "*") {
       if (missing) return path.replace(/\/\*$/, "") || "/";
+
+      if (typeof value !== 'string' && typeof value !== 'number') {
+        throw new TypeError(
+          `Splat parameter must be string or number, got ${typeof value}`
+        );
+      }
+
       // Splat values are path-like: preserve `/` separators but still
       // encode characters that could break the URL (`?`, `#`, spaces, …).
       const encoded =

@@ -9,7 +9,7 @@ import { PARAM_SEGMENT_RE, matchPath, safeDecode } from "./pattern";
  * A trailing splat (`/*`) is reported as the `"*"` name.
  */
 export function extractParamNames(template: string): string[] {
-  const names = [...template.matchAll(PARAM_SEGMENT_RE())].map(
+  const names = [...template.matchAll(PARAM_SEGMENT_RE)].map(
     (match) => match[2] as string,
   );
   if (template.endsWith("/*")) names.push("*");
@@ -18,7 +18,7 @@ export function extractParamNames(template: string): string[] {
 
 /** Returns `true` when the template contains a `:param` or trailing `/*` splat. */
 export function isDynamic(path: string): boolean {
-  return PARAM_SEGMENT_RE().test(path) || path.endsWith("/*");
+  return path.search(PARAM_SEGMENT_RE) !== -1 || path.endsWith("/*");
 }
 
 /**

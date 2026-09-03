@@ -1,5 +1,5 @@
-/** Returns a fresh RegExp each call — avoids shared `lastIndex` state on /g patterns. */
-const ESCAPE_RE = () => /[.*+?^${}()|[\]\\]/g;
+/** Global RegExp instances — safe since String.prototype.replace/matchAll don't bleed lastIndex. */
+const ESCAPE_RE = /[.*+?^${}()|[\]\\]/g;
 
 /**
  * Matches a `:param` token that starts a URL segment.
@@ -12,10 +12,10 @@ const ESCAPE_RE = () => /[.*+?^${}()|[\]\\]/g;
  * marker (`:param?`) is captured separately so it can be handled as a
  * whole-segment modifier.
  */
-export const PARAM_SEGMENT_RE = () => /(^|\/):([A-Za-z0-9_]+)(\?)?/g;
+export const PARAM_SEGMENT_RE = /(^|\/):([A-Za-z0-9_]+)(\?)?/g;
 
 export function escapeRegex(value: string): string {
-  return value.replace(ESCAPE_RE(), "\\$&");
+  return value.replace(ESCAPE_RE, "\\$&");
 }
 
 /**
@@ -34,7 +34,7 @@ function createTemplatePattern(template: string): string {
   let pattern = "";
   let cursor = 0;
 
-  for (const match of base.matchAll(PARAM_SEGMENT_RE())) {
+  for (const match of base.matchAll(PARAM_SEGMENT_RE)) {
     const start = match.index ?? 0;
     const token = match[0];
 

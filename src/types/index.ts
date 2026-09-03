@@ -16,6 +16,8 @@ export type RouteBuilder<TParams extends RouteParams = RouteParams> = (
 export type RouteParam = string | number | boolean;
 export type RouteParams = Record<string, RouteParam>;
 
+export type { ResolvedRoutes } from '../core/defineRoutes';
+
 /**
  * A leaf node in a route definition: either a static path or a builder function.
  */
@@ -103,7 +105,7 @@ export type PathParams<T extends string> =
  */
 export type QueryParams = Record<
   string,
-  RouteParam | RouteParam[] | null | undefined
+  RouteParam | (RouteParam | null | undefined)[] | null | undefined
 >;
 
 /**

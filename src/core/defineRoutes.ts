@@ -39,7 +39,7 @@ export type DynamicRoute<T extends string> = T extends
     }
   : StaticRoute<T>;
 
-type ResolvedRoutes<T extends RouteTree> = {
+export type ResolvedRoutes<T extends RouteTree> = {
   [K in keyof T]: T[K] extends RouteTree
     ? ResolvedRoutes<T[K]>
     : T[K] extends string
@@ -194,7 +194,7 @@ function wrapStaticPath<T extends string>(template: T): StaticRoute<T> {
 function wrapDynamicPath<T extends string>(template: T): DynamicRoute<T> {
   // Same here: primitive string, `.build()` and `.paramNames` are resolved
   // lazily from String.prototype based on the template text itself.
-  return template as unknown as DynamicRoute<T>;
+  return template as DynamicRoute<T>;
 }
 
 function processRouteMap<T extends RouteTree>(routes: T): ResolvedRoutes<T> {
@@ -212,8 +212,8 @@ function processRouteMap<T extends RouteTree>(routes: T): ResolvedRoutes<T> {
       ) as ResolvedRoutes<T>[typeof key];
     } else if (isRouteGroup(value)) {
       result[key] = processRouteMap(
-        value as RouteTree,
-      ) as unknown as ResolvedRoutes<T>[typeof key];
+        value,
+      ) as ResolvedRoutes<T>[typeof key];
     }
   }
 
@@ -228,7 +228,7 @@ export function defineRoutes<T extends RouteTree>(
   // in production by devWarn), so skip the O(n^2) walk entirely in
   // production rather than computing it and discarding the result.
   if (!isProduction()) {
-    detectDuplicatePaths(result as unknown as Record<string, unknown>);
+    detectDuplicatePaths(result as Record<string, unknown>);
   }
   return result;
 }

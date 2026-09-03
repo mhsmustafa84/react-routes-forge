@@ -26,6 +26,7 @@ export function appendQuery(
   const searchParams = new URLSearchParams();
   if (query) {
     for (const [key, value] of Object.entries(query)) {
+      if (!Object.prototype.hasOwnProperty.call(query, key)) continue;
       if (value === undefined || value === null) continue;
       if (Array.isArray(value)) {
         value.forEach((v) => {
@@ -45,7 +46,7 @@ export function appendQuery(
   }
 
   if (hash) {
-    result += "#" + hash;
+    result += "#" + encodeURIComponent(hash);
   } else if (existingHash) {
     result += "#" + existingHash;
   }
@@ -83,8 +84,11 @@ export function extractQueryFromPath(
   for (const key of new Set(params.keys())) {
     const values = params.getAll(key);
     const parsed = values.map((v) => {
-      if (options?.coerceBooleans && (v === "true" || v === "false")) {
-        return v === "true";
+      if (options?.coerceBooleans) {
+        const lower = String(v).toLowerCase();
+        if (lower === "true" || lower === "false") {
+          return lower === "true";
+        }
       }
       if (options?.coerceNumbers && v.trim() !== "" && !isNaN(Number(v))) {
         return Number(v);
