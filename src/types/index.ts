@@ -135,6 +135,11 @@ export type BuildPathOptions = {
    * The leading `#` is added automatically.
    */
   hash?: string;
+  /**
+   * Optional locale prefix to prepend to the built path (e.g., "fr" or "/en-US").
+   * Automatically handles slash normalization.
+   */
+  locale?: string;
 };
 
 /**

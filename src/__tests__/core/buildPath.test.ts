@@ -43,6 +43,24 @@ describe("buildPath", () => {
   });
 });
 
+describe("locale support", () => {
+  it("prepends the locale to the path", () => {
+    expect(buildPath("/users/:id", { id: 1 }, undefined, { locale: "fr" })).toBe("/fr/users/1");
+  });
+
+  it("handles locale with leading slashes", () => {
+    expect(buildPath("/users/:id", { id: 1 }, undefined, { locale: "/en-US/" })).toBe("/en-US/users/1");
+  });
+
+  it("handles locale with query parameters", () => {
+    expect(buildPath("/search", {}, { q: "test" }, { locale: "de" })).toBe("/de/search?q=test");
+  });
+  
+  it("handles locale with hash fragments", () => {
+    expect(buildPath("/about", {}, undefined, { locale: "es", hash: "team" })).toBe("/es/about#team");
+  });
+});
+
 describe("params with static suffixes", () => {
   it("buildPath resolves params before a static suffix", () => {
     expect(buildPath("/files/:name.json", { name: "report" })).toBe(

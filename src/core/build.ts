@@ -88,7 +88,11 @@ export function buildPath(
     );
   }
 
-  return appendQuery(resolved, query, options?.hash);
+  const finalPath = options?.locale
+    ? joinPaths(options.locale, resolved)
+    : resolved;
+
+  return appendQuery(finalPath, query, options?.hash);
 }
 
 /**
