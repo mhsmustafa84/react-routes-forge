@@ -1,3 +1,5 @@
+"use client";
+
 import { buildPath } from "../core/build";
 import type { BuildPathOptions, QueryParams, RouteParams } from "../types";
 
@@ -21,5 +23,11 @@ export function useResolvedPath(
   query?: QueryParams,
   options?: BuildPathOptions,
 ): string {
+  if (typeof window === "undefined") {
+    throw new Error(
+      "useResolvedPath can only be used in browser environment. " +
+        "Call this hook only in client components or after hydration.",
+    );
+  }
   return buildPath(template, params, query, options);
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { extractQueryFromPath } from "../core/query";

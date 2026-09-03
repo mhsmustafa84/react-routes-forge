@@ -1,3 +1,5 @@
+"use client";
+
 import { useLocation } from "react-router";
 import { isActivePath } from "../core/match";
 
