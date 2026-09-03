@@ -70,6 +70,7 @@ export default defineConfig({
         text: "Guides",
         items: [
           { text: "Strict Mode", link: "/strict-mode" },
+          { text: "Next.js Integration", link: "/nextjs" },
           { text: "Migration", link: "/migration" },
           { text: "TypeScript Support", link: "/typescript-support" },
           { text: "Performance", link: "/performance" },
