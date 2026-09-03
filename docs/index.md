@@ -130,6 +130,40 @@ function EditUser() {
 - **React Router v6 & v7** — hooks work identically with `react-router-dom` (v6/v7) and `react-router` (v6/v7); no duplicate-version risk
 - **ESM + CommonJS** — dual builds with proper `exports` conditions for bundlers and Node.js `require()`
 
+## Advanced Examples
+
+For enterprise applications, you can nest route groups as deeply as needed. The type system scales with your object structure.
+
+```ts
+export const PATHS = defineRoutes({
+  MARKETING: {
+    HOME: "/",
+    ABOUT: "/about",
+  },
+  APP: {
+    DASHBOARD: "/app/dashboard",
+    ORGANIZATIONS: {
+      LIST: "/app/organizations",
+      DETAILS: {
+        ROOT: "/app/organizations/:orgId",
+        SETTINGS: "/app/organizations/:orgId/settings",
+        MEMBERS: {
+          LIST: "/app/organizations/:orgId/members",
+          PROFILE: "/app/organizations/:orgId/members/:memberId",
+        }
+      }
+    }
+  }
+} as const);
+
+// Types are strictly preserved through any level of nesting
+PATHS.APP.ORGANIZATIONS.DETAILS.MEMBERS.PROFILE.build({ 
+  orgId: "acme", 
+  memberId: "u_123" 
+}); 
+// → '/app/organizations/acme/members/u_123'
+```
+
 ## Route Types
 
 | Route type  | Example                 | Behaves as                        | Gains                                                             |

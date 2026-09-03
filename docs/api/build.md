@@ -74,7 +74,13 @@ build("/users", {}, { sort: "asc", filter: undefined });
 ```ts
 PATHS.USERS.ROOT.build({ sort: "asc", page: 2 });
 // → '/users?sort=asc&page=2'
+
+// You can also pass options to static routes
+PATHS.USERS.ROOT.build({}, { hash: "top" });
+// → '/users#top'
 ```
+
+Note that for static routes, `.build()` is completely optional if you don't need to append query parameters or a hash. You can pass `PATHS.USERS.ROOT` directly to `<Link to>` or `navigate()`.
 
 ## Hash Fragments
 
@@ -95,3 +101,22 @@ build("/page", {}, undefined, { hash: "section" });
 ```
 
 The leading `#` is added automatically — pass just the fragment name (e.g. `"details"`, not `"#details"`).
+
+## URL Encoding Edge Cases
+
+By default, all parameter values are URL-encoded using `encodeURIComponent`.
+
+```ts
+build("/search/:query", { query: "foo/bar?baz" });
+// → '/search/foo%2Fbar%3Fbaz'
+```
+
+However, there are a few exceptions and options to be aware of:
+
+1. **Opting out of encoding**: Pass `{ encode: false }` if your value is already encoded or if you specifically need raw characters to pass through (use with caution).
+2. **Splat segments (`*`)**: Splat segments are treated as path-like. Forward slashes (`/`) are preserved, but other special characters (like `?` and `#`) are still encoded to prevent them from breaking the URL structure.
+   ```ts
+   build("/files/*", { "*": "folder/file name?" });
+   // → '/files/folder/file%20name%3F'
+   ```
+3. **Double encoding**: React Router v7's `generatePath` (which `react-routes-forge` does not use under the hood) applies its own URL encoding. Because `react-routes-forge` builds the fully encoded string itself, you don't need to worry about double-encoding when passing the result to React Router components like `<Link>`.

@@ -55,9 +55,20 @@ Behaviour notes:
 - `isActivePath("/files/a/b", "/files/*")` → `true`; `extractParamsFromPath("/files/*", "/files/a/b")` → `{ "*": "a/b" }`.
 - A splat must be **trailing** (`/files/*`). A `*` in the middle of a path is invalid and produces a dev warning.
 
+## React Router v6 vs v7 Compatibility
+
+`react-routes-forge` is designed to be completely version-agnostic between React Router v6 and v7. 
+
+The library's hooks (exported from `react-routes-forge/hooks`) use `react-router` core APIs (`useLocation`, `useNavigate`, `useParams`) under the hood, which both `react-router-dom` and `react-router` export in both v6 and v7.
+
+This approach guarantees several benefits regardless of your React Router version:
+1. **Zero Double-Encoding**: React Router v7's `generatePath` introduced automatic URL encoding. Because `react-routes-forge` bypasses `generatePath` and uses its own `buildPath` internally (even in `useResolvedPath`), it avoids double-encoding bugs completely.
+2. **`useSearchParams` Independence**: `useSearchParams` is notoriously tricky—it existed only in `react-router-dom` in v6, but was moved to `react-router` in v7. `react-routes-forge` avoids this break entirely by re-implementing search param state atop `useLocation` and `useNavigate`, ensuring `useTypedSearchParams` behaves identically across all versions.
+3. **No Duplicate React Router Versions**: By only defining `react-router` and `react-router-dom` as optional peer dependencies, `react-routes-forge` will never inadvertently install a duplicate version of React Router in your `node_modules`.
+
 ## `useResolvedPath` vs. the library's own `buildPath`
 
-`useResolvedPath` is a thin wrapper around the library's own `buildPath`, so splat (`*`), optional (`:param?`) and encoding behaviour are identical across every entry point — and consistent across React Router v6 and v7 (v7's `generatePath` URL-encodes values itself, which would otherwise double-encode).
+`useResolvedPath` is a thin wrapper around the library's own `buildPath`, so splat (`*`), optional (`:param?`) and encoding behaviour are identical across every entry point — and consistent across React Router v6 and v7.
 
 ## ESM + CommonJS builds
 

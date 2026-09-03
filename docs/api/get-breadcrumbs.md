@@ -56,3 +56,70 @@ getBreadcrumbs(PATHS, "/users/edit/42", {
 const flat = flattenRoutes(PATHS);
 getBreadcrumbs(flat, "/users/edit/42"); // same result as passing the tree
 ```
+
+## Advanced Usage
+
+### Integration with `useActivePath`
+
+You can use `getBreadcrumbs` alongside `useActivePath` and React Router's `useLocation` to build a dynamic breadcrumb component:
+
+```tsx
+import { useLocation } from "react-router";
+import { Link } from "react-router-dom";
+import { getBreadcrumbs } from "react-routes-forge";
+import { PATHS } from "../routes"; // your defineRoutes output
+
+export function Breadcrumbs() {
+  const location = useLocation();
+  const breadcrumbs = getBreadcrumbs(PATHS, location.pathname, {
+    labelResolver: (key) => {
+      // Custom transformation: "USERS.EDIT" -> "Edit"
+      return key.split(".").pop()!.toLowerCase();
+    }
+  });
+
+  return (
+    <nav aria-label="Breadcrumb">
+      <ol>
+        {breadcrumbs.map((crumb, index) => {
+          const isLast = index === breadcrumbs.length - 1;
+          return (
+            <li key={crumb.key} aria-current={isLast ? "page" : undefined}>
+              {isLast ? (
+                <span>{crumb.label}</span>
+              ) : (
+                <Link to={crumb.path}>{crumb.label}</Link>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+```
+
+### Deep Navigation Trees
+
+`getBreadcrumbs` handles highly nested trees gracefully. For example, if you have a deep route like `/orgs/:orgId/projects/:projectId/settings`:
+
+```ts
+const PATHS = defineRoutes({
+  ORGS: {
+    ROOT: "/orgs",
+    DETAILS: {
+      ROOT: "/orgs/:orgId",
+      PROJECTS: {
+        ROOT: "/orgs/:orgId/projects",
+        DETAILS: {
+          ROOT: "/orgs/:orgId/projects/:projectId",
+          SETTINGS: "/orgs/:orgId/projects/:projectId/settings"
+        }
+      }
+    }
+  }
+} as const);
+
+// Generates 5 levels of breadcrumbs automatically
+getBreadcrumbs(PATHS, "/orgs/acme/projects/router/settings");
+```

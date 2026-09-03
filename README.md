@@ -584,6 +584,7 @@ appendQuery("/users?tab=list", { page: 2 }); // → '/users?tab=list&page=2'
 appendQuery("/users#top", { tab: "list" }); // → '/users?tab=list#top'
 appendQuery("/users", { active: true }); // → '/users?active=true'
 appendQuery("/users", { tag: ["a", "b"] }); // → '/users?tag=a&tag=b'
+appendQuery("/users", { tag: ["a", null, "b", undefined] }); // → '/users?tag=a&tag=b'
 ```
 
 This is the same helper every path-resolving function uses internally.

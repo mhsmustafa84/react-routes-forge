@@ -30,7 +30,7 @@ The package exports the following types for advanced use cases:
 | `RouteBuilder`      | A route builder function                             |
 | `RouteParam`        | Accepted param value types (`string \| number \| boolean`) |
 | `RouteParams`       | Record of param name to value                        |
-| `QueryParams`       | Query parameter record with array/null/undefined support |
+| `QueryParams`       | Query parameter record with array (including null/undefined items) support |
 | `RouteLeaf`         | Either a static path or a builder function           |
 | `RouteMap`          | Recursively defined route map                        |
 | `RouteTree`         | Annotatable shape of a route map for `defineRoutes`  |

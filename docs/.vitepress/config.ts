@@ -7,8 +7,6 @@ export default defineConfig({
   lastUpdated: true,
 
   themeConfig: {
-    logo: false,
-
     nav: [
       { text: "Home", link: "/" },
       { text: "Getting Started", link: "/getting-started" },
@@ -44,6 +42,7 @@ export default defineConfig({
           { text: "extractQueryFromPath", link: "/api/extract-query-from-path" },
           { text: "devWarn", link: "/api/dev-warn" },
           { text: "clearPathCache", link: "/api/clear-path-cache" },
+          { text: "Optional Parameters", link: "/api/optional-parameters" },
           { text: "Known Behaviours & Gotchas", link: "/api/known-behaviours" },
         ],
       },
@@ -63,6 +62,8 @@ export default defineConfig({
           { text: "Strict Mode", link: "/strict-mode" },
           { text: "Migrating from Old Patterns", link: "/migration" },
           { text: "TypeScript Support", link: "/typescript-support" },
+          { text: "Performance", link: "/performance" },
+          { text: "Troubleshooting", link: "/troubleshooting" },
           { text: "Changelog", link: "/changelog" },
         ],
       },
