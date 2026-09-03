@@ -31,6 +31,11 @@
       "import": "./dist/hooks/index.js",
       "require": "./dist/hooks/index.cjs"
     },
+    "./next": {
+      "types": "./dist/next/index.d.ts",
+      "import": "./dist/next/index.js",
+      "require": "./dist/next/index.cjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -70,7 +75,7 @@
   },
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts src/hooks/index.ts --format esm,cjs --dts --minify --sourcemap --clean",
+    "build": "tsup src/index.ts src/hooks/index.ts src/next/index.ts --format esm,cjs --dts --minify --sourcemap --clean",
     "lint": "tsc --noEmit",
     "lint:eslint": "eslint . --ext .js,.cjs,.ts,.tsx",
     "test": "bun test",
@@ -84,11 +89,15 @@
     "docs:preview": "vitepress preview docs"
   },
   "peerDependencies": {
+    "next": "",
     "react": ">=17",
     "react-router-dom": ">=6",
     "react-router": ">=6"
   },
   "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    },
     "react-router-dom": {
       "optional": true
     },
@@ -110,6 +119,7 @@
     "eslint": "^8.57.0",
     "husky": "^9.0.0",
     "jsdom": "^29.1.1",
+    "next": "^16.3.4",
     "react-router-dom": "^6.0.0",
     "standard-version": "^9.5.0",
     "tsup": "^8.0.0",
