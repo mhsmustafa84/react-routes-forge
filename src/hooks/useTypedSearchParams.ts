@@ -1,6 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { appendQuery, extractQueryFromPath } from "../core/query";
+import { extractQueryFromPath } from "../core/query";
 import type { QueryParams } from "../types";
 
 /**
@@ -23,23 +23,46 @@ export function useTypedSearchParams(options?: {
   coerceBooleans?: boolean;
   coerceNumbers?: boolean;
 }) {
+  if (typeof window === "undefined") {
+    throw new Error(
+      "useTypedSearchParams can only be used in browser environment. " +
+        "Call this hook only in client components or after hydration.",
+    );
+  }
   const location = useLocation();
   const navigate = useNavigate();
 
-  const queryParams = extractQueryFromPath(location.search, options);
+  const queryParams = useMemo(
+    () => extractQueryFromPath(location.search, options),
+    [location.search, options],
+  );
 
   const setTypedQuery = useCallback(
     (
       newQuery: QueryParams,
       navigateOptions?: { replace?: boolean; state?: unknown },
     ) => {
-      const updatedPath = appendQuery("", newQuery);
-      const updatedSearchParams = new URLSearchParams(
-        updatedPath.startsWith("?") ? updatedPath.slice(1) : updatedPath,
-      );
-      navigate(`?${updatedSearchParams.toString()}`, navigateOptions);
+      const searchParams = new URLSearchParams();
+      Object.entries(newQuery).forEach(([key, value]) => {
+        if (!Object.prototype.hasOwnProperty.call(newQuery, key)) return;
+        if (value === undefined || value === null) return;
+
+        if (Array.isArray(value)) {
+          value.forEach((v) => {
+            if (v !== undefined && v !== null) {
+              searchParams.append(key, String(v));
+            }
+          });
+        } else {
+          searchParams.append(key, String(value));
+        }
+      });
+
+      const queryString = searchParams.toString();
+      const prefix = queryString ? "?" : "";
+      navigate(`${prefix}${queryString}${location.hash}`, navigateOptions);
     },
-    [navigate],
+    [navigate, location.hash],
   );
 
   return [queryParams, setTypedQuery] as const;

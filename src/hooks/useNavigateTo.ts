@@ -22,6 +22,12 @@ export type NavigateOptions = {
  * ```
  */
 export function useNavigateTo() {
+  if (typeof window === 'undefined') {
+    throw new Error(
+      'useNavigateTo can only be used in browser environment. ' +
+      'Call this hook only in client components or after hydration.'
+    );
+  }
   const navigate = useNavigate();
 
   return useCallback(

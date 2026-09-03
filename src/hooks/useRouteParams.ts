@@ -16,6 +16,9 @@ import type { ExtractParams } from "../types";
  * const PATHS = defineRoutes({ USERS: { EDIT: '/users/edit/:id' } } as const);
  * const { id } = useRouteParams(PATHS.USERS.EDIT);
  * ```
+ *
+ * @warning React Router can return `undefined` for missing parameters (e.g., if a param is optional or absent).
+ * Always check for `undefined` values at runtime, even though the type signature assumes they are present.
  */
 // Overload 1: no-arg generic — caller provides the template literal as T
 export function useRouteParams<T extends string = string>(): Record<
@@ -30,5 +33,11 @@ export function useRouteParams<P extends string>(route: {
 export function useRouteParams<P extends string>(_route?: {
   readonly paramNames: ReadonlyArray<P> | Array<P>;
 }): Record<string, string> {
+  if (typeof window === 'undefined') {
+    throw new Error(
+      'useRouteParams can only be used in browser environment. ' +
+      'Call this hook only in client components or after hydration.'
+    );
+  }
   return useParams() as Record<string, string>;
 }

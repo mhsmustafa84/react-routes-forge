@@ -14,6 +14,12 @@ export function useActivePath(
   template: string,
   options: { exact?: boolean; caseSensitive?: boolean } = {},
 ): boolean {
+  if (typeof window === 'undefined') {
+    throw new Error(
+      'useActivePath can only be used in browser environment. ' +
+      'Call this hook only in client components or after hydration.'
+    );
+  }
   // Forwarded as-is — isActivePath defaults `exact`/`caseSensitive`
   // individually, so a partial options object here still behaves correctly.
   const location = useLocation();
