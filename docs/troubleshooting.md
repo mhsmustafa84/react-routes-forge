@@ -68,7 +68,7 @@ const { sort = "desc", page = "1" } = query;
 
 ### 6. Hooks crashing in Server-Side Rendering (SSR)
 
-**Symptom**: Next.js or Remix crashes with "useLocation must be used within a <Routes> component" or similar errors during server render.
+**Symptom**: Next.js or Remix crashes with "useLocation must be used within a `<Routes>` component" or similar errors during server render.
 
 **Cause**: The hooks provided by `react-routes-forge/hooks` wrap React Router hooks (`useLocation`, `useNavigate`, `useParams`). React Router requires a router context, which often isn't present during SSR unless explicitly provided.
 
