@@ -30,6 +30,7 @@ The package exports the following types for advanced use cases:
 | `RouteBuilder`      | A route builder function                             |
 | `RouteParam`        | Accepted param value types (`string \| number \| boolean`) |
 | `RouteParams`       | Record of param name to value                        |
+| `QueryParamValue`   | A single query param value (scalar, array, nested object, or null/undefined) |
 | `QueryParams`       | Query parameter record with array (including null/undefined items) support |
 | `RouteLeaf`         | Either a static path or a builder function           |
 | `RouteMap`          | Recursively defined route map                        |
@@ -43,6 +44,12 @@ The package exports the following types for advanced use cases:
 | `StaticRoute`       | A static route leaf — a genuine primitive string with `.build(query?, options?)` |
 | `DynamicRoute`      | A dynamic/splat route leaf — with `.build(params, ...)` and `.paramNames` |
 | `MatchPathOptions`  | Options for `matchPath` (`end`, `caseSensitive`)      |
+
+The following types are exported from `react-routes-forge/next`:
+
+| Type | Description |
+| ---- | ----------- |
+| `NavigateOptions` | `{ replace?: boolean; scroll?: boolean }` — options for `useNavigateTo()` |
 
 Annotate a plain route object with `RouteTree` before passing it to `defineRoutes()`:
 

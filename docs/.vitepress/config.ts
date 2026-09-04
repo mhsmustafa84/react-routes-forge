@@ -12,6 +12,7 @@ export default defineConfig({
       { text: "Home", link: "/" },
       { text: "Getting Started", link: "/getting-started" },
       { text: "API Reference", link: "/api/define-routes" },
+      { text: "Next.js", link: "/nextjs/" },
       {
         text: "npm",
         link: "https://www.npmjs.com/package/react-routes-forge",
@@ -54,7 +55,7 @@ export default defineConfig({
         ],
       },
       {
-        text: "React Hooks",
+        text: "React Router Hooks",
         items: [
           { text: "useRouteParams", link: "/hooks/use-route-params" },
           { text: "useNavigateTo", link: "/hooks/use-navigate-to" },
@@ -67,11 +68,23 @@ export default defineConfig({
         ],
       },
       {
+        text: "Next.js",
+        items: [
+          { text: "Overview", link: "/nextjs/" },
+          { text: "useActivePath", link: "/nextjs/use-active-path" },
+          { text: "useNavigateTo", link: "/nextjs/use-navigate-to" },
+          { text: "useRouteParams", link: "/nextjs/use-route-params" },
+          {
+            text: "useTypedSearchParams",
+            link: "/nextjs/use-typed-search-params",
+          },
+        ],
+      },
+      {
         text: "Guides",
         items: [
-          { text: "Strict Mode", link: "/strict-mode" },
-          { text: "Next.js Integration", link: "/nextjs" },
           { text: "Migration", link: "/migration" },
+          { text: "Strict Mode", link: "/strict-mode" },
           { text: "TypeScript Support", link: "/typescript-support" },
           { text: "Performance", link: "/performance" },
           { text: "Troubleshooting", link: "/troubleshooting" },

@@ -36,4 +36,5 @@ When modifying or adding new features (e.g. core functions or hooks):
 
 1. Update the `README.md`.
 2. Add or update the markdown pages inside the `docs/` directory.
-3. If changing API signatures, make sure both React Router and Next.js variants are documented where applicable.
+3. Make sure `migration.md` and `changelog.md` are updated inside the `docs/` directory.
+4. If changing API signatures, make sure both React Router and Next.js variants are documented where applicable.

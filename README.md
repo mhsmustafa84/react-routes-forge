@@ -44,6 +44,11 @@
   - [`useActivePath(template, options?)`](#useactivepathtemplate-options)
   - [`useTypedSearchParams(options?)`](#usetypedsearchparamsoptions)
 - [Next.js Integration](#nextjs-integration)
+  - [`useActivePath` (Next.js)](#nextjs-hooks)
+  - [`useNavigateTo` (Next.js)](#nextjs-hooks)
+  - [`useRouteParams` (Next.js)](#nextjs-hooks)
+  - [`useTypedSearchParams` (Next.js)](#nextjs-hooks)
+  - [`NavigateOptions` type](#nextjs-hooks)
 - [Splat (`/*`) segments](#splat--segments)
 - [Route validation](#route-validation)
 - [Query string support](#query-string-support)
@@ -217,7 +222,7 @@ Quick reference for everything the package exports — grouped by kind. Click th
 | [`devWarn(message)`](#devwarnmessage)                                                          | Emit a `console.warn` in non-production builds             |
 | [`clearPathCache()`](#clearpathcache)                                                         | Reset internal regex caches (mainly for tests)             |
 
-### React hooks
+### React hooks (React Router)
 
 | Export                                                                  | Purpose                                                       |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -225,9 +230,20 @@ Quick reference for everything the package exports — grouped by kind. Click th
 | [`useNavigateTo()`](#usenavigateto)                                     | Typed wrapper around React Router's `useNavigate`             |
 | [`useResolvedPath(...)`](#useresolvedpathtemplate-params-query-options) | Resolve a template to a string without navigating             |
 | [`useActivePath(template, options?)`](#useactivepathtemplate-options)   | Check if the current location matches a route template        |
-| [`useTypedSearchParams(options?)`](#usetypedsearchparamsoptions)        | Typed `useSearchParams` with boolean/number coercion          |
+| [`useTypedSearchParams<T>(options?)`](#usetypedsearchparamsoptions)     | Typed `useSearchParams` with generic return type and boolean/number coercion |
+
+### Next.js hooks (`react-routes-forge/next`)
+
+| Export                        | Purpose                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------- |
+| `useActivePath(template, options?)` | Matches pathname via `usePathname()` — same API as the React Router variant |
+| `useNavigateTo()`             | Navigation via `useRouter()`; returned fn also exposes `.prefetch()`    |
+| `useRouteParams<T>()`         | Typed params via `useParams()` — same overload API                     |
+| `useTypedSearchParams<T>(options?)` | Typed query params backed by `useSearchParams()` + `useRouter()`   |
+| `NavigateOptions` *(type)*    | `{ replace?: boolean; scroll?: boolean }` — nav options type           |
 
 ---
+
 
 ## API reference
 
@@ -674,7 +690,7 @@ beforeEach(() => {
 
 Import these if you're using React Router or Next.js — they live in separate entries (`react-routes-forge/hooks` and `react-routes-forge/next`), so the core package never pulls in router dependencies. The React Router hooks work identically with **`react-router-dom`** (v6/v7) and **`react-router`** (v6/v7).
 
-> **Note for Next.js users**: Equivalent hooks for Next.js App Router and Pages Router are available in `react-routes-forge/next`. They share the same API as the React Router hooks documented below.
+> **Note for Next.js users**: Equivalent hooks for Next.js App Router and Pages Router are available in `react-routes-forge/next`. They share the same API as the React Router hooks documented below. See the [Next.js Integration section](#nextjs-integration) for full details, patterns, and troubleshooting.
 
 ### `useRouteParams<T>()`
 
@@ -713,7 +729,7 @@ function EditUserInferred() {
 
 ### `useNavigateTo()`
 
-Thin, typed wrapper around `useNavigate()` (or Next.js's `useRouter()`) that accepts a resolved path (the output of `.build()`) along with the usual navigation options.
+Thin, typed wrapper around `useNavigate()` (or Next.js's `useRouter()`) that accepts a resolved path (the output of `.build()`) along with the usual navigation options. Includes a `.prefetch()` method for Next.js or performance-oriented routers.
 
 ```tsx
 // For React Router
@@ -734,6 +750,7 @@ function Component() {
 
 navigateTo(PATHS.HOME, { replace: true });
 navigateTo(PATHS.USERS.ROOT, { state: { from: "settings" } });
+navigateTo.prefetch(PATHS.USERS.ROOT);
 ```
 
 ---
@@ -791,9 +808,11 @@ function Nav() {
 
 ---
 
-### `useTypedSearchParams(options?)`
+### `useTypedSearchParams<T>(options?)`
 
 A typed wrapper around the router's search-params API (React Router's `useSearchParams` or Next.js's `useSearchParams` + `useRouter`). Returns a parsed query params object (using [`extractQueryFromPath()`](#extractqueryfrompathpath-options)) and a setter that updates the query string. The same coercion options are supported: `{ coerceBooleans: true }` and `{ coerceNumbers: true }`.
+
+You can pass a generic type parameter `T` to get a strongly-typed `query` object and constrained setter:
 
 ```tsx
 // For React Router
@@ -801,13 +820,15 @@ import { useTypedSearchParams } from "react-routes-forge/hooks";
 // For Next.js
 // import { useTypedSearchParams } from "react-routes-forge/next";
 
+type SearchQuery = { page?: number; sort?: string; active?: boolean };
+
 function Filters() {
-  const [query, setQuery] = useTypedSearchParams({
+  const [query, setQuery] = useTypedSearchParams<SearchQuery>({
     coerceBooleans: true,
     coerceNumbers: true,
   });
 
-  // query.page is a number when the URL is '/search?page=2'
+  // query.page is typed as number | undefined
   const nextPage = (query.page ?? 0) + 1;
   setQuery({ ...query, page: nextPage });
 
@@ -831,19 +852,33 @@ All hooks provided for Next.js are available in `react-routes-forge/next` and re
 import { useActivePath, useRouteParams, useNavigateTo, useTypedSearchParams } from "react-routes-forge/next";
 import { PATHS } from "../paths";
 
+type SearchQuery = { q?: string; page?: number };
+
 export function Sidebar() {
   const isUsersActive = useActivePath(PATHS.USERS.ROOT);
   const { id } = useRouteParams(PATHS.USERS.DETAILS);
   const navigateTo = useNavigateTo();
+  const [query, setQuery] = useTypedSearchParams<SearchQuery>({ coerceNumbers: true });
 
-  return <nav>...</nav>;
+  // Prefetch a route on hover (Next.js only)
+  const handleHover = () => navigateTo.prefetch(PATHS.USERS.ROOT);
+
+  return <nav onMouseEnter={handleHover}>...</nav>;
 }
+```
+
+**`NavigateOptions` type:**
+The `react-routes-forge/next` entry also exports a `NavigateOptions` type for the navigation options:
+
+```ts
+import type { NavigateOptions } from "react-routes-forge/next";
+// { replace?: boolean; scroll?: boolean }
 ```
 
 **Server Components:**
 You can safely import your `PATHS` definition in Server Components and use `.build()` to generate URLs for `<Link href={...}>`, `redirect()`, or metadata generation without any issues. No `"use client"` is needed for the core API!
 
-For a full breakdown of Next.js usage, see the [Next.js documentation](https://mhsmustafa84.github.io/react-routes-forge/nextjs).
+For a full breakdown of Next.js usage, see the [Next.js documentation](https://mhsmustafa84.github.io/react-routes-forge/nextjs/).
 
 ---
 

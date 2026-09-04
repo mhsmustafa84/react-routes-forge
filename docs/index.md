@@ -178,6 +178,7 @@ PATHS.APP.ORGANIZATIONS.DETAILS.MEMBERS.PROFILE.build({
 - [Getting Started](/getting-started) — install and first route definition
 - [defineRoutes](/api/define-routes) — start with the core API
 - [React Hooks](/hooks/use-route-params) — typed hooks for React Router integration
+- [Next.js Integration](/nextjs/) — App Router & Pages Router hooks and patterns
 - [Query & Hash Support](/api/build#query-string-serialization) — query strings and hash fragments
 - [Strict Mode](/strict-mode) — catching missing params at compile time
 - [Migration Guide](/migration) — migrate from manual path patterns

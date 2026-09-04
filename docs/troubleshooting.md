@@ -68,14 +68,20 @@ const { sort = "desc", page = "1" } = query;
 
 ### 6. Hooks crashing in Server-Side Rendering (SSR)
 
-**Symptom**: Next.js or Remix crashes with "useLocation must be used within a `<Routes>` component" or similar errors during server render.
+**Symptom**: Your app crashes with "useLocation must be used within a `<Routes>` component" or similar errors during server render.
 
-**Cause**: The hooks provided by `react-routes-forge/hooks` wrap React Router hooks (`useLocation`, `useNavigate`, `useParams`). React Router requires a router context, which often isn't present during SSR unless explicitly provided.
+**Cause**: The hooks exported from `react-routes-forge/hooks` wrap **React Router** hooks (`useLocation`, `useNavigate`, `useParams`). React Router requires a router context, which is not present during SSR unless explicitly provided.
 
-**Solution**: Ensure these hooks are only called in client components, or wrap them in environment checks:
+> [!NOTE]
+> This does **not** affect `react-routes-forge/next`. Those hooks use `next/navigation` which is natively SSR-safe, provided the component has `"use client"` at the top.
+
+**Solution for `react-routes-forge/hooks`**: Ensure these hooks are only called in components wrapped by a React Router `<BrowserRouter>` or `<MemoryRouter>`. For frameworks like Remix, check that your component is inside a route boundary.
+
+**Solution for `react-routes-forge/next`**: Ensure the component has `"use client"` at the top:
 ```tsx
-'use client'; // For Next.js App Router
+'use client';
 
-import { useActivePath } from "react-routes-forge/hooks";
-// ...
+import { useActivePath } from "react-routes-forge/next";
+// ✓ Safe — backed by next/navigation, not React Router context
 ```
+
