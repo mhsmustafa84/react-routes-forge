@@ -8,7 +8,7 @@ This guide covers every version of `react-routes-forge` — what changed, what n
 
 | Version | Date | Highlights |
 | ------- | ---- | ---------- |
-| [v1.5.1](#upgrading-to-v151) | 2026-09-04 | `useTypedSearchParams<T>` generic, `useNavigateTo().prefetch()`, `QueryParamValue` type |
+| [v1.6.0](#upgrading-to-v160) | 2026-09-04 | Nested query params (bracket notation), `useTypedSearchParams<T>` generic, `useNavigateTo().prefetch()`, `QueryParamValue` type |
 | [v1.5.0](#upgrading-to-v150) | 2026-09-03 | Next.js hooks (`/next`), `buildRelative`, locale support, SSR guards |
 | [v1.4.x](#upgrading-to-v14x) | 2026-08-15 | React Router v6 & v7 cross-compatibility |
 | [v1.3.x](#upgrading-to-v13x) | 2026-08-01 | Static `.build()`, splat routes, `useActivePath`, `useTypedSearchParams`, query helpers |
@@ -18,11 +18,38 @@ This guide covers every version of `react-routes-forge` — what changed, what n
 
 ---
 
-## Upgrading to v1.5.1
+## Upgrading to v1.6.0
 
 **No breaking changes.** All existing code continues to work without modification.
 
-### 1. `useTypedSearchParams<T>` — generic type parameter
+### 1. Nested query parameters with bracket notation
+
+In v1.6.0, query parameter utilities (`appendQuery`, `buildPath`, `.build()`) now support nested objects by automatically serializing them into standard bracket notation. In addition, `extractQueryFromPath` parses bracket notation back into nested JavaScript objects.
+
+```ts
+// Serializing nested objects with .build() or appendQuery:
+PATHS.USERS.ROOT.build(undefined, {
+  filter: { status: "active", role: "admin" },
+  sort: "name",
+});
+// → '/users?filter[status]=active&filter[role]=admin&sort=name'
+
+// Deeply nested objects are fully supported:
+appendQuery("/search", {
+  settings: { pagination: { page: 1, limit: 20 } },
+});
+// → '/search?settings[pagination][page]=1&settings[pagination][limit]=20'
+
+// Parsing bracket notation back into nested objects:
+extractQueryFromPath("/search?settings[pagination][page]=1&settings[pagination][limit]=20", {
+  coerceNumbers: true,
+});
+// → { settings: { pagination: { page: 1, limit: 20 } } }
+```
+
+Updating nested parameters with `setQuery` in `useTypedSearchParams` or with `appendQuery` automatically cleans up existing keys under that root key before serializing the new object.
+
+### 2. `useTypedSearchParams<T>` — generic type parameter
 
 Previously the hook always returned the generic `QueryParams` type. You can now pass your own query shape as a type argument for compile-time safety on both the returned object and the setter.
 
@@ -31,7 +58,7 @@ Previously the hook always returned the generic `QueryParams` type. You can now 
 const [query, setQuery] = useTypedSearchParams({ coerceNumbers: true });
 // query is typed as QueryParams — all values are QueryParamValue
 
-// After (v1.5.1) — opt-in generic for strong typing
+// After (v1.6.0) — opt-in generic for strong typing
 type Filters = { page?: number; sort?: string; active?: boolean };
 
 const [query, setQuery] = useTypedSearchParams<Filters>({ coerceNumbers: true });
@@ -41,7 +68,7 @@ const [query, setQuery] = useTypedSearchParams<Filters>({ coerceNumbers: true })
 
 Works identically for both `react-routes-forge/hooks` (React Router) and `react-routes-forge/next` (Next.js).
 
-### 2. `useNavigateTo().prefetch()` — Next.js only
+### 3. `useNavigateTo().prefetch()` — Next.js only
 
 The `useNavigateTo` hook from `react-routes-forge/next` now returns a function with an attached `.prefetch()` method, enabling route prefetching on hover or any other trigger without a separate `useRouter()` call.
 
@@ -51,7 +78,7 @@ import { useRouter } from "next/navigation";
 const router = useRouter();
 router.prefetch(PATHS.USERS.DETAILS.build({ id }));
 
-// After (v1.5.1) — prefetch via the same navigateTo handle
+// After (v1.6.0) — prefetch via the same navigateTo handle
 import { useNavigateTo } from "react-routes-forge/next";
 const navigateTo = useNavigateTo();
 
@@ -61,12 +88,12 @@ const navigateTo = useNavigateTo();
 />
 ```
 
-### 3. New `QueryParamValue` exported type
+### 4. New `QueryParamValue` exported type
 
 The value type for a single query param (previously inlined inside `QueryParams`) is now exported as its own named type.
 
 ```ts
-// v1.5.1+
+// v1.6.0+
 import type { QueryParamValue } from "react-routes-forge";
 // type QueryParamValue = string | number | boolean
 //   | (string | number | boolean | null | undefined)[]
@@ -75,9 +102,9 @@ import type { QueryParamValue } from "react-routes-forge";
 function serializeParam(value: QueryParamValue) { ... }
 ```
 
-### 4. Removed SSR runtime guards in Next.js hooks
+### 5. Removed SSR runtime guards in Next.js hooks
 
-In v1.5.0, all Next.js hooks threw a `Error` at runtime when called outside the browser (`typeof window === 'undefined'`). These guards have been removed because Next.js already enforces the `"use client"` boundary at build time — the runtime check was redundant and produced confusing errors.
+In v1.5.0, all Next.js hooks threw an `Error` at runtime when called outside the browser (`typeof window === 'undefined'`). These guards have been removed because Next.js already enforces the `"use client"` boundary at build time — the runtime check was redundant and produced confusing errors.
 
 **Action needed:** If you had workarounds (e.g. conditional rendering or `useEffect` guards protecting these hook calls), they can be safely removed when using Next.js App Router with `"use client"` properly applied.
 
@@ -88,7 +115,7 @@ useEffect(() => setMounted(true), []);
 if (!mounted) return null;
 const navigateTo = useNavigateTo();
 
-// After (v1.5.1) — no workaround needed
+// After (v1.6.0) — no workaround needed
 "use client";
 const navigateTo = useNavigateTo(); // safe, Next.js enforces "use client" at build time
 ```

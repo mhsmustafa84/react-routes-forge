@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [1.5.1](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.5.0...v1.5.1) (2026-09-04)
+## [1.6.0](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.5.0...v1.6.0) (2026-09-04)
 
 
 ### Features
 
+* **core**: Support nested object serialization and deserialization in query parameters using bracket notation. `appendQuery`, `buildPath`, and `.build()` serialize nested objects into standard bracket notation (e.g. `{ filter: { status: "active", author: { id: 1 } } }` → `filter[status]=active&filter[author][id]=1`). When updating existing keys, `appendQuery` automatically cleans up existing nested keys. In `extractQueryFromPath`, bracket-notated query strings are automatically parsed back into deeply nested JavaScript objects.
 * **next**: `useNavigateTo()` now returns a function with a `.prefetch(path, options?)` method, wrapping `router.prefetch()` from `next/navigation`. The options type is derived automatically from the Next.js `AppRouter` signature via the `Parameters` utility type — no manual type annotation needed.
 * **hooks & next**: `useTypedSearchParams<T>()` now accepts a generic type parameter `T extends QueryParams`. Passing `T` gives you a strongly-typed `query` object and a constrained setter. Omitting `T` falls back to the previous untyped `QueryParams` shape — fully backwards-compatible.
 * **types**: New exported type `QueryParamValue` — the union type for a single query parameter value (`string | number | boolean | array | null | undefined | QueryParams`). Previously this was inlined inside the `QueryParams` definition and not accessible to consumers.
