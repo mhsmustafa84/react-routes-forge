@@ -59,9 +59,19 @@ describe("appendQuery", () => {
     expect(appendQuery("/api", { a: null, b: undefined, c: 1 })).toBe("/api?c=1");
   });
 
-  it("handles complex objects and symbols by stringifying them", () => {
-    expect(appendQuery("/users", { nested: { obj: "value" } as any })).toBe("/users?nested=%5Bobject+Object%5D");
-    expect(appendQuery("/users", { sym: Symbol("test") as any })).toBe("/users?sym=Symbol%28test%29");
+  it("serializes nested objects using bracket notation", () => {
+    expect(appendQuery("/users", { user: { name: "John", age: 30 } } as any)).toBe(
+      "/users?user%5Bname%5D=John&user%5Bage%5D=30"
+    );
+  });
+
+  it("replaces existing nested object keys correctly", () => {
+    expect(appendQuery("/users?user[name]=Jane&user[age]=25", { user: { name: "John" } } as any)).toBe(
+      "/users?user%5Bname%5D=John"
+    );
+    expect(appendQuery("/users?user[name]=Jane", { user: undefined } as any)).toBe(
+      "/users"
+    );
   });
 
   it("preserves falsy values in arrays but skips null/undefined", () => {
@@ -99,6 +109,18 @@ describe("extractQueryFromPath", () => {
   it("groups repeated keys into arrays", () => {
     expect(extractQueryFromPath("/search?tag=a&tag=b&tag=c")).toEqual({
       tag: ["a", "b", "c"],
+    });
+  });
+
+  it("parses deeply nested objects using bracket notation", () => {
+    expect(extractQueryFromPath("/users?user[name]=John&user[age]=30&user[address][city]=NY", { coerceNumbers: true })).toEqual({
+      user: {
+        name: "John",
+        age: 30,
+        address: {
+          city: "NY",
+        },
+      },
     });
   });
 

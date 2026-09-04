@@ -1,4 +1,35 @@
-import type { QueryParams } from "../types";
+import type { QueryParams, QueryParamValue } from "../types";
+
+function serializeToParams(keyPrefix: string, value: QueryParamValue, searchParams: URLSearchParams) {
+  if (value === undefined || value === null) return;
+  
+  if (Array.isArray(value)) {
+    value.forEach((v) => {
+      if (v !== undefined && v !== null) {
+        searchParams.append(keyPrefix, String(v));
+      }
+    });
+  } else if (typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) {
+      serializeToParams(`${keyPrefix}[${k}]`, v, searchParams);
+    }
+  } else {
+    searchParams.append(keyPrefix, String(value));
+  }
+}
+
+function deleteMatchingKeys(searchParams: URLSearchParams, rootKey: string) {
+  const prefix = `${rootKey}[`;
+  const keysToDelete: string[] = [];
+  for (const key of searchParams.keys()) {
+    if (key === rootKey || key.startsWith(prefix)) {
+      keysToDelete.push(key);
+    }
+  }
+  for (const key of keysToDelete) {
+    searchParams.delete(key);
+  }
+}
 
 /**
  * Append a query string and/or hash fragment to a path that may already
@@ -20,21 +51,23 @@ export function appendQuery(
   hash?: string,
 ): string {
   const hashIdx = path.indexOf("#");
-  const base = hashIdx === -1 ? path : path.slice(0, hashIdx);
+  const pathWithoutHash = hashIdx === -1 ? path : path.slice(0, hashIdx);
   const existingHash = hashIdx === -1 ? "" : path.slice(hashIdx + 1);
 
-  const searchParams = new URLSearchParams();
+  const queryIdx = pathWithoutHash.indexOf("?");
+  const base = queryIdx === -1 ? pathWithoutHash : pathWithoutHash.slice(0, queryIdx);
+  const existingQueryString = queryIdx === -1 ? "" : pathWithoutHash.slice(queryIdx + 1);
+
+  const searchParams = new URLSearchParams(existingQueryString);
+
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (!Object.prototype.hasOwnProperty.call(query, key)) continue;
-      if (value === undefined || value === null) continue;
-      if (Array.isArray(value)) {
-        value.forEach((v) => {
-          if (v !== undefined && v !== null)
-            searchParams.append(key, String(v));
-        });
-      } else {
-        searchParams.append(key, String(value));
+      
+      deleteMatchingKeys(searchParams, key);
+      
+      if (value !== undefined && value !== null) {
+        serializeToParams(key, value, searchParams);
       }
     }
   }
@@ -42,7 +75,7 @@ export function appendQuery(
   let result = base;
   const queryString = searchParams.toString();
   if (queryString) {
-    result += (result.includes("?") ? "&" : "?") + queryString;
+    result += "?" + queryString;
   }
 
   if (hash) {
@@ -54,9 +87,23 @@ export function appendQuery(
   return result;
 }
 
+function setDeepProperty(obj: Record<string, unknown>, path: string, value: unknown) {
+  const parts = path.replace(/\]/g, "").split(/\[/);
+  let current: Record<string, unknown> = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i] as string;
+    if (!current[part] || typeof current[part] !== 'object' || Array.isArray(current[part])) {
+      current[part] = {};
+    }
+    current = current[part] as Record<string, unknown>;
+  }
+  current[parts[parts.length - 1] as string] = value;
+}
+
 /**
  * Parse the query string out of a path (or bare query string) into a plain
  * object. Repeated keys become arrays; a single key is a scalar string.
+ * Supports deep object nesting via bracket notation (e.g. `user[name]=John`).
  *
  * With `{ coerceBooleans: true }`, the strings `"true"`/`"false"` are
  * converted to actual booleans.
@@ -95,7 +142,8 @@ export function extractQueryFromPath(
       }
       return v;
     });
-    result[key] = parsed.length > 1 ? parsed : (parsed[0] ?? "");
+    const finalValue = parsed.length > 1 ? parsed : (parsed[0] ?? "");
+    setDeepProperty(result, key, finalValue);
   }
 
   return result;

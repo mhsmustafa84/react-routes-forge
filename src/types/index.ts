@@ -103,10 +103,16 @@ export type PathParams<T extends string> =
 /**
  * Acceptable query param value types for route builders.
  */
-export type QueryParams = Record<
-  string,
-  RouteParam | (RouteParam | null | undefined)[] | null | undefined
->;
+export type QueryParamValue =
+  | RouteParam
+  | (RouteParam | null | undefined)[]
+  | null
+  | undefined
+  | QueryParams;
+
+export type QueryParams = {
+  [key: string]: QueryParamValue;
+};
 
 /**
  * Options accepted by `buildPath` (4th positional argument).
