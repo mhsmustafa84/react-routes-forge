@@ -92,16 +92,6 @@ describe("useActivePath", () => {
     expect(result.current).toBe(false);
   });
 
-  it("throws if used outside of browser environment", () => {
-    const originalWindow = global.window;
-    // @ts-expect-error - simulating SSR
-    delete global.window;
-    
-    expect(() => {
-      useActivePath("/test");
-    }).toThrow(/browser environment/);
-    
-    global.window = originalWindow;
-  });
+
 });
 

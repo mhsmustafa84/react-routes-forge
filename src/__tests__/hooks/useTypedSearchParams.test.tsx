@@ -143,15 +143,5 @@ describe("useTypedSearchParams", () => {
     expect(query.page).toBe("2");
   });
 
-  it("throws if used outside of browser environment", () => {
-    const originalWindow = global.window;
-    // @ts-expect-error - simulating SSR
-    delete global.window;
 
-    expect(() => {
-      useTypedSearchParams();
-    }).toThrow(/browser environment/);
-
-    global.window = originalWindow;
-  });
 });

@@ -35,11 +35,6 @@ export function useRouteParams<P extends string>(route: {
 export function useRouteParams<P extends string>(_route?: {
   readonly paramNames: ReadonlyArray<P> | Array<P>;
 }): Record<string, string> {
-  if (typeof window === 'undefined') {
-    throw new Error(
-      'useRouteParams can only be used in browser environment. ' +
-      'Call this hook only in client components or after hydration.'
-    );
-  }
+
   return useParams() as Record<string, string>;
 }

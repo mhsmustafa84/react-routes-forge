@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { extractQueryFromPath } from "../core/query";
+import { extractQueryFromPath, appendQuery } from "../core/query";
 import type { QueryParams } from "../types";
 
 /**
@@ -21,48 +21,26 @@ import type { QueryParams } from "../types";
  * setQuery({ tab: 'details', page: 2 });
  * ```
  */
-export function useTypedSearchParams(options?: {
+export function useTypedSearchParams<T extends QueryParams = QueryParams>(options?: {
   coerceBooleans?: boolean;
   coerceNumbers?: boolean;
 }) {
-  if (typeof window === "undefined") {
-    throw new Error(
-      "useTypedSearchParams can only be used in browser environment. " +
-        "Call this hook only in client components or after hydration.",
-    );
-  }
+
   const location = useLocation();
   const navigate = useNavigate();
 
   const queryParams = useMemo(
-    () => extractQueryFromPath(location.search, options),
+    () => extractQueryFromPath(location.search, options) as T,
     [location.search, options],
   );
 
   const setTypedQuery = useCallback(
     (
-      newQuery: QueryParams,
+      newQuery: Partial<T> | QueryParams,
       navigateOptions?: { replace?: boolean; state?: unknown },
     ) => {
-      const searchParams = new URLSearchParams();
-      Object.entries(newQuery).forEach(([key, value]) => {
-        if (!Object.prototype.hasOwnProperty.call(newQuery, key)) return;
-        if (value === undefined || value === null) return;
-
-        if (Array.isArray(value)) {
-          value.forEach((v) => {
-            if (v !== undefined && v !== null) {
-              searchParams.append(key, String(v));
-            }
-          });
-        } else {
-          searchParams.append(key, String(value));
-        }
-      });
-
-      const queryString = searchParams.toString();
-      const prefix = queryString ? "?" : "";
-      navigate(`${prefix}${queryString}${location.hash}`, navigateOptions);
+      const queryString = appendQuery("", newQuery as QueryParams);
+      navigate(`${queryString}${location.hash}`, navigateOptions);
     },
     [navigate, location.hash],
   );
