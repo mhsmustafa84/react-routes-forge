@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.5.0...v1.6.0) (2026-09-04)
+
+
+### Features
+
+* **next:** add prefetch, generic useTypedSearchParams, remove SSR guards ([fb077a2](https://github.com/mhsmustafa84/react-routes-forge/commit/fb077a21d5c4e471a6f68291f308ba5bef62c25e))
+* support nested object serialization in query params using bracket notation ([556ace9](https://github.com/mhsmustafa84/react-routes-forge/commit/556ace90c8d5a01e71b166c8fdcb28e877763e24))
+
 ## [1.5.0](https://github.com/mhsmustafa84/react-routes-forge/compare/v1.4.2...v1.5.0) (2026-09-03)
 
 
