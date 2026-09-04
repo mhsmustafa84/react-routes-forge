@@ -96,7 +96,7 @@ function setDeepProperty(obj: Record<string, unknown>, path: string, value: unkn
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i] as string;
     if (!current[part] || typeof current[part] !== 'object' || Array.isArray(current[part])) {
-      current[part] = {};
+      current[part] = Object.create(null) as Record<string, unknown>;
     }
     current = current[part] as Record<string, unknown>;
   }
@@ -131,7 +131,7 @@ export function extractQueryFromPath(
   if (queryIdx === -1) return {};
 
   const params = new URLSearchParams(noHash.slice(queryIdx + 1));
-  const result: QueryParams = {};
+  const result = Object.create(null) as QueryParams;
 
   for (const key of new Set(params.keys())) {
     const values = params.getAll(key);
