@@ -89,6 +89,9 @@ export function appendQuery(
 
 function setDeepProperty(obj: Record<string, unknown>, path: string, value: unknown) {
   const parts = path.replace(/\]/g, "").split(/\[/);
+  const isUnsafeKey = (k: string) => k === "__proto__" || k === "constructor" || k === "prototype";
+  if (parts.some((p) => isUnsafeKey(String(p)))) return;
+
   let current: Record<string, unknown> = obj;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i] as string;
@@ -97,7 +100,9 @@ function setDeepProperty(obj: Record<string, unknown>, path: string, value: unkn
     }
     current = current[part] as Record<string, unknown>;
   }
-  current[parts[parts.length - 1] as string] = value;
+  const lastPart = parts[parts.length - 1] as string;
+  if (isUnsafeKey(lastPart)) return;
+  current[lastPart] = value;
 }
 
 /**
