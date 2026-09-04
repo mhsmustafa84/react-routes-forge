@@ -87,8 +87,14 @@ export function appendQuery(
   return result;
 }
 
+function isUnsafePropertyKey(key: string): boolean {
+  return key === "__proto__" || key === "prototype" || key === "constructor";
+}
+
 function setDeepProperty(obj: Record<string, unknown>, path: string, value: unknown) {
   const parts = path.replace(/\]/g, "").split(/\[/);
+  if (parts.some((part) => isUnsafePropertyKey(part))) return;
+
   let current: Record<string, unknown> = obj;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i] as string;
